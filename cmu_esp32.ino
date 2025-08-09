@@ -6,8 +6,8 @@
 extern "C" {
 #include "fft_hann_1024.h"
 #include "fft_twiddles_512.h"
+#include "filter.h"
 #include "spectrum.h"
-#include "spectrum_utils.h"
 }
 
 #include "esp_bt_main.h"
