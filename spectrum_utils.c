@@ -2,32 +2,12 @@
 
 #include <tgmath.h>
 
-#include "math_utils.h"
 #include "spectrum.h"
 
 void amplification_coefficients(float* amp_k, const float* freq, size_t n)
 {
   for (size_t i = 0; i < n; i++) {
     amp_k[i] = log(log(freq[i]));
-  }
-}
-
-void process_spectrum(const struct proc_opt* opt, float* spectrum, size_t n)
-{
-  for (size_t i = 0; i < n; i++) {
-    // spectrum is (frequency,amplitude) pairs
-//    float* f = spectrum + 2*i + 0;
-    float* a = spectrum + 2*i + 1;
-
-    // normalize amplitudes
-    *a = clamp_range(*a, opt->min_db, opt->max_db);
-    *a = map_range(*a, opt->min_db, opt->max_db, 0.f, 1.f);
-
-    if (opt->ampm)
-      *a *= opt->ampm[i];
-
-    if (*a > 1.f)
-      *a = 1.f;
   }
 }
 

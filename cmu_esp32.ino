@@ -53,13 +53,6 @@ struct analysis_cfg acfg = {
 };
 
 // TODO: load values from "prefs"
-struct proc_opt p_options = {
-  .min_db = -50,
-  .max_db = 0,
-  .ampm = log_log_f_ks,
-};
-
-// TODO: load values from "prefs"
 struct filter_opt f_options = {
   .level_low = 0.8,
   .level_mid = 1.5,
@@ -180,11 +173,11 @@ static void spectrum_rgb_out(const float* spectrum)
 {
   float bars[3];
   spectrum_lmh_out(spectrum, FFT_SIZE, bars, &f_options);
-  // ui_display_raw_led_values(bars[0], bars[1], bars[2]);
+
   bars[0] *= f_options.level_low;
   bars[1] *= f_options.level_mid;
   bars[2] *= f_options.level_high;
-  // ui_display_amp_led_values(bars[0], bars[1], bars[2]);
+
   for (int i = 0; i < count_of(bars); i++)
     bars[i] = std::clamp(bars[i], 0.f, 1.f);
 
@@ -341,14 +334,9 @@ void loop()
   }
 
   analyze_input(&acfg, input_buffer, fft_io_buffer);
-/*
-  magnitudes_to_decibels(fft_io_buffer, FFT_SIZE);
-  process_spectrum(&p_options, fft_io_buffer, FFT_SIZE);
-*/
-  if (p_options.ampm) {
-    for (int i = 0; i < FFT_SIZE; i++) {
-      fft_io_buffer[2*i + 1] *= 2 * p_options.ampm[i];
-    }
+
+  for (int i = 0; i < FFT_SIZE; i++) {
+    fft_io_buffer[2*i + 1] *= 2 * log_log_f_ks[i];
   }
 
   spectrum_rgb_out(fft_io_buffer);

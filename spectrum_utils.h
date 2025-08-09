@@ -10,17 +10,6 @@
 // n - spectrum elements count
 void amplification_coefficients(float* amp_k, const float* freq, size_t n);
 
-struct proc_opt {
-  float min_db;         // lowest dB value, e.g. -50
-  float max_db;         // highest dB value, e.g. 0
-  const float* ampm;    // amplification level per frequency
-};
-
-// post-process the spectrum
-// normalizes amplitudes, output is in range [0...1]
-// n - spectrum elements (i.e. pairs) count, spectrum array size / 2
-void process_spectrum(const struct proc_opt* opt, float* spectrum, size_t n);
-
 struct filter_opt {
   float level_low;
   float level_mid;
