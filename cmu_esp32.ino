@@ -63,6 +63,17 @@ struct filter_opt f_options = {
   .thr_high = 18,
 };
 
+// calculate by-frequency amplification coefficients
+// amp_k - amplification coefficients output buffer, size is n
+// freq - frequencies buffer, size is n
+// n - spectrum elements count
+static void amplification_coefficients(float* amp_k, const float* freq, size_t n)
+{
+  for (size_t i = 0; i < n; i++) {
+    amp_k[i] = log(log(freq[i]));
+  }
+}
+
 static void frequencies_data_init(size_t sample_rate)
 {
   frequencies_data(spectrum_frs, sample_rate, FFT_SIZE);
@@ -167,6 +178,13 @@ static void pwm_rgb_set(float r, float g, float b)
   ledcWriteChannel(0, static_cast<uint32_t>(std::lround(r*max_value)));
   ledcWriteChannel(1, static_cast<uint32_t>(std::lround(g*max_value)));
   ledcWriteChannel(2, static_cast<uint32_t>(std::lround(b*max_value)));
+
+  static int ticks_to_wait = 100;
+  static int ticks_counter = 0;
+  if (++ticks_counter == ticks_to_wait) {
+    ticks_counter = 0;
+    Serial.printf("r: %.2f, g: %.2f, b: %.2f\n", r, g, b);
+  }
 }
 
 static void spectrum_rgb_out(const float* spectrum)
@@ -174,19 +192,8 @@ static void spectrum_rgb_out(const float* spectrum)
   float bars[3];
   spectrum_lmh_out(spectrum, FFT_SIZE, bars, &f_options);
 
-  bars[0] *= f_options.level_low;
-  bars[1] *= f_options.level_mid;
-  bars[2] *= f_options.level_high;
-
   for (int i = 0; i < count_of(bars); i++)
     bars[i] = std::clamp(bars[i], 0.f, 1.f);
-
-  static int ticks_to_wait = 100;
-  static int ticks_counter = 0;
-  if (++ticks_counter == ticks_to_wait) {
-    ticks_counter = 0;
-    Serial.printf("r: %.2f, g: %.2f, b: %.2f\n", bars[2], bars[1], bars[0]);
-  }
 
   // TODO: implement option for swapping channels
   pwm_rgb_set(bars[2], bars[1], bars[0]);

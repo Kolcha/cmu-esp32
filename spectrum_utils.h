@@ -1,14 +1,11 @@
+// SPDX-FileCopyrightText: 2025 Nick Korotysh <nick.korotysh@gmail.com>
+// SPDX-License-Identifier: MIT
+
 #ifndef _SPECTRUM_UTILS_H_
 #define _SPECTRUM_UTILS_H_
 
 #include <stddef.h>
 #include <stdint.h>
-
-// calculate by-frequency amplification coefficients
-// amp_k - amplification coefficients output buffer, size is n
-// freq - frequencies buffer, size is n
-// n - spectrum elements count
-void amplification_coefficients(float* amp_k, const float* freq, size_t n);
 
 struct filter_opt {
   float level_low;

@@ -1,15 +1,9 @@
+// SPDX-FileCopyrightText: 2025 Nick Korotysh <nick.korotysh@gmail.com>
+// SPDX-License-Identifier: MIT
+
 #include "spectrum_utils.h"
 
-#include <tgmath.h>
-
 #include "spectrum.h"
-
-void amplification_coefficients(float* amp_k, const float* freq, size_t n)
-{
-  for (size_t i = 0; i < n; i++) {
-    amp_k[i] = log(log(freq[i]));
-  }
-}
 
 static const uint16_t bands_8[] = {
   0, 0,
@@ -51,6 +45,10 @@ void spectrum_lmh_out(const float* spectrum, size_t n, float out[],
   };
 
   spectrum_bars(3, out, bands, spectrum, n);
+
+  out[0] *= opt->level_low;
+  out[1] *= opt->level_mid;
+  out[2] *= opt->level_high;
 }
 
 void spectrum_bars_8(const float* spectrum, size_t n, float out[])
