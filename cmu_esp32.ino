@@ -3,12 +3,16 @@
 
 #include <Preferences.h>
 
+#include <BLEDevice.h>
+#include <BLEServer.h>
+
 extern "C" {
 #include "fft_hann_1024.h"
 #include "fft_twiddles_512.h"
 #include "filter.h"
 #include "spectrum.h"
 }
+#include "ble_helper.hpp"
 
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
@@ -26,6 +30,8 @@ extern "C" {
 
 #define RGB_PWM_FREQ        50000
 #define RGB_PWM_BITS        10
+
+#define SERVICE_UUID    "fc8bd000-4814-4031-bff0-fbca1b99ee44"
 
 #define count_of(X)     (sizeof(X)/sizeof(X[0]))
 
@@ -299,6 +305,45 @@ static void reconnect_to_last_device()
     esp_a2d_sink_connect(last_addr);
   }
 }
+
+class MyServerCallbacks: public BLEServerCallbacks
+{
+  void onConnect(BLEServer* pServer)
+  {
+  }
+
+  void onDisconnect(BLEServer* pServer)
+  {
+    // pServer->startAdvertising();
+    BLEDevice::startAdvertising();
+  }
+};
+
+static void ble_server_init(const char* dev_name)
+{
+  BLEDevice::init(dev_name);
+  BLEServer *pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 64);
+
+  ble_add_rw_characteristic(pService, "ef599dd1-35ad-4a35-a367-e4401693f02a", &acfg.preamp, 0x14, "preamp");
+  ble_add_rw_characteristic(pService, "26ebeecb-c65e-4769-8bce-932e6814580e", &f_options.level_low, 0x14, "level_low");
+  ble_add_rw_characteristic(pService, "b4d3b959-a0f3-4b6a-b0d9-9ca6991563a0", &f_options.level_mid, 0x14, "level_mid");
+  ble_add_rw_characteristic(pService, "1d1750a8-9235-4f1b-890c-512f87135d31", &f_options.level_high, 0x14, "level_high");
+  ble_add_rw_characteristic(pService, "f333456c-b5f0-4201-9ede-8c846b38556d", &f_options.thr_low, 0x06, "thr_low");
+  ble_add_rw_characteristic(pService, "a0532c1f-09b7-49aa-9131-13153d0fad75", &f_options.thr_ml, 0x06, "thr_ml");
+  ble_add_rw_characteristic(pService, "5c04fb0e-a31e-41a3-9635-1e1597729ea0", &f_options.thr_mh, 0x06, "thr_mh");
+  ble_add_rw_characteristic(pService, "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e", &f_options.thr_high, 0x06, "thr_high");
+
+  pService->start();
+
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
+
+  BLEDevice::startAdvertising();
+}
 // ----------------------------------------------------------
 
 // ----------------------------------------------------------
@@ -318,7 +363,8 @@ void setup()
   digitalWrite(INDICATOR_LED_PIN, HIGH);
 
   // TODO: read name from "prefs", use "dev_name" key
-  bt_audio_sink_init("ESP_Speaker_N");
+  bt_audio_sink_init("ESP_Speaker_K");
+  ble_server_init("ESP_Speaker_K");
   reconnect_to_last_device();
 }
 
