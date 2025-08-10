@@ -12,7 +12,7 @@ extern "C" {
 #include "filter.h"
 #include "spectrum.h"
 }
-#include "ble_helper.hpp"
+#include "device_options_ble.hpp"
 
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
@@ -58,7 +58,6 @@ struct analysis_cfg acfg = {
   .preamp = 1.0,
 };
 
-// TODO: load values from "prefs"
 struct filter_opt f_options = {
   .level_low = 0.8,
   .level_mid = 1.5,
@@ -325,16 +324,7 @@ static void ble_server_init(const char* dev_name)
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks);
   BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 64);
-
-  ble_add_rw_characteristic(pService, "ef599dd1-35ad-4a35-a367-e4401693f02a", &acfg.preamp, 0x14, "preamp");
-  ble_add_rw_characteristic(pService, "26ebeecb-c65e-4769-8bce-932e6814580e", &f_options.level_low, 0x14, "level_low");
-  ble_add_rw_characteristic(pService, "b4d3b959-a0f3-4b6a-b0d9-9ca6991563a0", &f_options.level_mid, 0x14, "level_mid");
-  ble_add_rw_characteristic(pService, "1d1750a8-9235-4f1b-890c-512f87135d31", &f_options.level_high, 0x14, "level_high");
-  ble_add_rw_characteristic(pService, "f333456c-b5f0-4201-9ede-8c846b38556d", &f_options.thr_low, 0x06, "thr_low");
-  ble_add_rw_characteristic(pService, "a0532c1f-09b7-49aa-9131-13153d0fad75", &f_options.thr_ml, 0x06, "thr_ml");
-  ble_add_rw_characteristic(pService, "5c04fb0e-a31e-41a3-9635-1e1597729ea0", &f_options.thr_mh, 0x06, "thr_mh");
-  ble_add_rw_characteristic(pService, "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e", &f_options.thr_high, 0x06, "thr_high");
-
+  ble_add_filter_characteristics(pService);
   pService->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
