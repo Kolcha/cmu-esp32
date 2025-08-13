@@ -31,7 +31,7 @@ extern "C" {
 #define RGB_PWM_FREQ        50000
 #define RGB_PWM_BITS        10
 
-#define SERVICE_UUID    "fc8bd000-4814-4031-bff0-fbca1b99ee44"
+#define FILTER_SERVICE_UUID     "fc8bd000-4814-4031-bff0-fbca1b99ee44"
 
 #define count_of(X)     (sizeof(X)/sizeof(X[0]))
 
@@ -323,12 +323,13 @@ static void ble_server_init(const char* dev_name)
   BLEDevice::init(dev_name);
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks);
-  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 64);
-  ble_add_filter_characteristics(pService);
-  pService->start();
+
+  auto f_service = pServer->createService(BLEUUID(FILTER_SERVICE_UUID), 64);
+  ble_add_filter_characteristics(f_service);
+  f_service->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->addServiceUUID(FILTER_SERVICE_UUID);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
 
