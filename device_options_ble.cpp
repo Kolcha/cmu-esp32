@@ -12,6 +12,7 @@ extern "C" {
 #include <BLE2904.h>
 
 extern String device_name;
+extern bool swap_r_b_channels;
 
 extern struct analysis_cfg acfg;
 extern struct filter_opt f_options;
@@ -60,6 +61,18 @@ template<>
 void ConfigValue<String>::read(Preferences& prefs)
 {
   _val = prefs.getString(_key, _val);
+}
+
+template<>
+void ConfigValue<bool>::write(Preferences& prefs)
+{
+  prefs.putBool(_key, _val);
+}
+
+template<>
+void ConfigValue<bool>::read(Preferences& prefs)
+{
+  _val = prefs.getBool(_key, _val);
 }
 
 
@@ -121,6 +134,13 @@ static const ValueFormat<String> fmt_string = {
   .from_ble = &fmt_string_from_ble,
 };
 
+static const ValueFormat<bool> fmt_bool = {
+  .format = BLE2904::FORMAT_BOOLEAN,
+  .exponent = 0,
+  .to_ble = &fmt_raw_to_ble<bool>,
+  .from_ble = &fmt_raw_from_ble<bool>,
+};
+
 
 void ble_characteristic_add_format(BLECharacteristic* c, uint8_t fmt, int8_t exp)
 {
@@ -139,6 +159,7 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 
 
 static auto opt_device_name = ConfigValue(device_name, "device", "dev_name");
+static auto opt_swap_channels = ConfigValue(swap_r_b_channels, "device", "swap_r_b");
 
 static auto opt_preamp = ConfigValue(acfg.preamp, "filter", "preamp");
 static auto opt_level_low = ConfigValue(f_options.level_low, "filter", "level_low");
@@ -153,6 +174,7 @@ static auto opt_thr_high = ConfigValue(f_options.thr_high, "filter", "thr_high")
 void load_values_from_config()
 {
   opt_device_name.load();
+  opt_swap_channels.load();
 
   opt_preamp.load();
   opt_level_low.load();
@@ -171,6 +193,10 @@ void ble_add_device_characteristics(BLEService* service)
                  "101588e6-7fb1-4992-963b-b2ef597fa49d",
                  fmt_string,
                  "dev_name");
+  ble_add_option(service, opt_swap_channels,
+                 "5a8b2bba-6319-46a6-b37e-520744f35bfe",
+                 fmt_bool,
+                 "swap_r_b_channels");
 }
 
 void ble_add_filter_characteristics(BLEService* service)

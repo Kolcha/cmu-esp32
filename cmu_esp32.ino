@@ -40,6 +40,7 @@ extern "C" {
 //                    device configuration
 // ----------------------------------------------------------
 String device_name = "ESP_Speaker_K";
+bool swap_r_b_channels = true;
 
 // ----------------------------------------------------------
 //           FFT & spectrum analysis configuration
@@ -206,8 +207,10 @@ static void spectrum_rgb_out(const float* spectrum)
   for (int i = 0; i < count_of(bars); i++)
     bars[i] = std::clamp(bars[i], 0.f, 1.f);
 
-  // TODO: implement option for swapping channels
-  pwm_rgb_set(bars[2], bars[1], bars[0]);
+  if (swap_r_b_channels)
+    std::swap(bars[0], bars[2]);
+
+  pwm_rgb_set(bars[0], bars[1], bars[2]);
 }
 // ----------------------------------------------------------
 
