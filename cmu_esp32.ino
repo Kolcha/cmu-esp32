@@ -352,6 +352,8 @@ void setup()
   pinMode(INDICATOR_LED_PIN, OUTPUT);
   digitalWrite(INDICATOR_LED_PIN, HIGH);
 
+  load_values_from_config();
+
   // TODO: read name from "prefs", use "dev_name" key
   bt_audio_sink_init("ESP_Speaker_K");
   ble_server_init("ESP_Speaker_K");
