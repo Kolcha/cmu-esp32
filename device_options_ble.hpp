@@ -4,6 +4,7 @@
 #pragma once
 
 #include <BLECharacteristic.h>
+#include <BLEDescriptor.h>
 #include <BLEService.h>
 
 #include <Preferences.h>
@@ -83,6 +84,15 @@ private:
 
 void ble_characteristic_add_format(BLECharacteristic* c, uint8_t fmt, int8_t exp);
 void ble_characteristic_add_description(BLECharacteristic* c, const char* desc);
+
+template<typename T>
+void ble_characteristic_add_value_range(BLECharacteristic* c, T vmin, T vmax)
+{
+  T data[] = {vmin, vmax};
+  auto desc = new BLEDescriptor(BLEUUID(static_cast<uint16_t>(0x2906)));
+  desc->setValue(reinterpret_cast<uint8_t*>(data), sizeof(data));
+  c->addDescriptor(desc);
+}
 
 template<typename T>
 void ble_characteristic_bind_value(BLECharacteristic* c, ConfigValue<T>& val, const ValueFormat<T>& fmt)

@@ -199,6 +199,41 @@ void ble_add_device_characteristics(BLEService* service)
                  "swap_r_b_channels");
 }
 
+template<typename R, typename T>
+void ble_bulk_add_range(BLEService* service, R&& uuids, T vmin, T vmax)
+{
+  for (const auto& uuid : uuids)
+    if (auto c = service->getCharacteristic(uuid))
+      ble_characteristic_add_value_range(c, vmin, vmax);
+}
+
+static void ble_add_levels_range(BLEService* service, float vmin, float vmax)
+{
+  auto ble_vmin = float_to_u16(vmin);
+  auto ble_vmax = float_to_u16(vmax);
+
+  const auto levels_uuids = {
+    "ef599dd1-35ad-4a35-a367-e4401693f02a",
+    "26ebeecb-c65e-4769-8bce-932e6814580e",
+    "b4d3b959-a0f3-4b6a-b0d9-9ca6991563a0",
+    "1d1750a8-9235-4f1b-890c-512f87135d31",
+  };
+
+  ble_bulk_add_range(service, levels_uuids, ble_vmin, ble_vmax);
+}
+
+static void ble_add_thresholds_range(BLEService* service, uint8_t vmin, uint8_t vmax)
+{
+  const auto thresholds_uuids = {
+    "f333456c-b5f0-4201-9ede-8c846b38556d",
+    "a0532c1f-09b7-49aa-9131-13153d0fad75",
+    "5c04fb0e-a31e-41a3-9635-1e1597729ea0",
+    "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
+  };
+
+  ble_bulk_add_range(service, thresholds_uuids, vmin, vmax);
+}
+
 void ble_add_filter_characteristics(BLEService* service)
 {
   ble_add_option(service, opt_preamp,
@@ -217,6 +252,7 @@ void ble_add_filter_characteristics(BLEService* service)
                  "1d1750a8-9235-4f1b-890c-512f87135d31",
                  fmt_float_u16,
                  "level_high");
+  ble_add_levels_range(service, 0.f, 3.f);
 
   ble_add_option(service, opt_thr_low,
                  "f333456c-b5f0-4201-9ede-8c846b38556d",
@@ -234,4 +270,5 @@ void ble_add_filter_characteristics(BLEService* service)
                  "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
                  fmt_u8_raw,
                  "thr_high");
+  ble_add_thresholds_range(service, 0, 255);
 }
