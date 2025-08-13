@@ -11,6 +11,8 @@ extern "C" {
 #include <BLE2901.h>
 #include <BLE2904.h>
 
+extern String device_name;
+
 extern struct analysis_cfg acfg;
 extern struct filter_opt f_options;
 
@@ -48,6 +50,18 @@ void ConfigValue<float>::read(Preferences& prefs)
   _val = float_from_u16(prefs.getUShort(_key, float_to_u16(_val)));
 }
 
+template<>
+void ConfigValue<String>::write(Preferences& prefs)
+{
+  prefs.putString(_key, _val);
+}
+
+template<>
+void ConfigValue<String>::read(Preferences& prefs)
+{
+  _val = prefs.getString(_key, _val);
+}
+
 
 template<typename T>
 void fmt_raw_to_ble(const T& val, BLECharacteristic* c)
@@ -75,6 +89,17 @@ void fmt_float_from_ble_u16(BLECharacteristic* c, float& val)
 }
 
 
+void fmt_string_to_ble(const String& val, BLECharacteristic* c)
+{
+  c->setValue(val);
+}
+
+void fmt_string_from_ble(BLECharacteristic* c, String& val)
+{
+  val = c->getValue();
+}
+
+
 static const ValueFormat<uint16_t> fmt_u16_raw = {
   .format = BLE2904::FORMAT_UINT16,
   .exponent = 0,
@@ -87,6 +112,13 @@ static const ValueFormat<float> fmt_float_u16 = {
   .exponent = -4,
   .to_ble = &fmt_float_to_ble_u16,
   .from_ble = &fmt_float_from_ble_u16,
+};
+
+static const ValueFormat<String> fmt_string = {
+  .format = BLE2904::FORMAT_UTF8,
+  .exponent = 0,
+  .to_ble = &fmt_string_to_ble,
+  .from_ble = &fmt_string_from_ble,
 };
 
 
@@ -106,6 +138,8 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 }
 
 
+static auto opt_device_name = ConfigValue(device_name, "device", "dev_name");
+
 static auto opt_preamp = ConfigValue(acfg.preamp, "filter", "preamp");
 static auto opt_level_low = ConfigValue(f_options.level_low, "filter", "level_low");
 static auto opt_level_mid = ConfigValue(f_options.level_mid, "filter", "level_mid");
@@ -118,6 +152,8 @@ static auto opt_thr_high = ConfigValue(f_options.thr_high, "filter", "thr_high")
 
 void load_values_from_config()
 {
+  opt_device_name.load();
+
   opt_preamp.load();
   opt_level_low.load();
   opt_level_mid.load();
@@ -127,6 +163,14 @@ void load_values_from_config()
   opt_thr_ml.load();
   opt_thr_mh.load();
   opt_thr_high.load();
+}
+
+void ble_add_device_characteristics(BLEService* service)
+{
+  ble_add_option(service, opt_device_name,
+                 "101588e6-7fb1-4992-963b-b2ef597fa49d",
+                 fmt_string,
+                 "dev_name");
 }
 
 void ble_add_filter_characteristics(BLEService* service)

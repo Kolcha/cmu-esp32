@@ -31,9 +31,15 @@ extern "C" {
 #define RGB_PWM_FREQ        50000
 #define RGB_PWM_BITS        10
 
+#define DEVICE_SERVICE_UUID     "8af2e1aa-6cfa-4cd8-a9f9-54243e04d9c7"
 #define FILTER_SERVICE_UUID     "fc8bd000-4814-4031-bff0-fbca1b99ee44"
 
 #define count_of(X)     (sizeof(X)/sizeof(X[0]))
+
+// ----------------------------------------------------------
+//                    device configuration
+// ----------------------------------------------------------
+String device_name = "ESP_Speaker_K";
 
 // ----------------------------------------------------------
 //           FFT & spectrum analysis configuration
@@ -324,11 +330,16 @@ static void ble_server_init(const char* dev_name)
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks);
 
+  auto d_service = pServer->createService(BLEUUID(DEVICE_SERVICE_UUID), 16);
+  ble_add_device_characteristics(d_service);
+  d_service->start();
+
   auto f_service = pServer->createService(BLEUUID(FILTER_SERVICE_UUID), 64);
   ble_add_filter_characteristics(f_service);
   f_service->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(DEVICE_SERVICE_UUID);
   pAdvertising->addServiceUUID(FILTER_SERVICE_UUID);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
@@ -355,9 +366,8 @@ void setup()
 
   load_values_from_config();
 
-  // TODO: read name from "prefs", use "dev_name" key
-  bt_audio_sink_init("ESP_Speaker_K");
-  ble_server_init("ESP_Speaker_K");
+  bt_audio_sink_init(device_name.c_str());
+  ble_server_init(device_name.c_str());
   reconnect_to_last_device();
 }
 
