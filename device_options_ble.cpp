@@ -28,15 +28,15 @@ constexpr float float_from_u16(uint16_t x) noexcept
 }
 
 template<>
-void ConfigValue<uint16_t>::write(Preferences& prefs)
+void ConfigValue<uint8_t>::write(Preferences& prefs)
 {
-  prefs.putUShort(_key, _val);
+  prefs.putUChar(_key, _val);
 }
 
 template<>
-void ConfigValue<uint16_t>::read(Preferences& prefs)
+void ConfigValue<uint8_t>::read(Preferences& prefs)
 {
-  _val = prefs.getUShort(_key, _val);
+  _val = prefs.getUChar(_key, _val);
 }
 
 template<>
@@ -113,11 +113,11 @@ void fmt_string_from_ble(BLECharacteristic* c, String& val)
 }
 
 
-static const ValueFormat<uint16_t> fmt_u16_raw = {
-  .format = BLE2904::FORMAT_UINT16,
+static const ValueFormat<uint8_t> fmt_u8_raw = {
+  .format = BLE2904::FORMAT_UINT8,
   .exponent = 0,
-  .to_ble = &fmt_raw_to_ble<uint16_t>,
-  .from_ble = &fmt_raw_from_ble<uint16_t>,
+  .to_ble = &fmt_raw_to_ble<uint8_t>,
+  .from_ble = &fmt_raw_from_ble<uint8_t>,
 };
 
 static const ValueFormat<float> fmt_float_u16 = {
@@ -220,18 +220,18 @@ void ble_add_filter_characteristics(BLEService* service)
 
   ble_add_option(service, opt_thr_low,
                  "f333456c-b5f0-4201-9ede-8c846b38556d",
-                 fmt_u16_raw,
+                 fmt_u8_raw,
                  "thr_low");
   ble_add_option(service, opt_thr_ml,
                  "a0532c1f-09b7-49aa-9131-13153d0fad75",
-                 fmt_u16_raw,
+                 fmt_u8_raw,
                  "thr_ml");
   ble_add_option(service, opt_thr_mh,
                  "5c04fb0e-a31e-41a3-9635-1e1597729ea0",
-                 fmt_u16_raw,
+                 fmt_u8_raw,
                  "thr_mh");
   ble_add_option(service, opt_thr_high,
                  "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
-                 fmt_u16_raw,
+                 fmt_u8_raw,
                  "thr_high");
 }

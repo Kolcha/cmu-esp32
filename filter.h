@@ -12,10 +12,10 @@ struct filter_opt {
   float level_mid;
   float level_high;
 
-  uint16_t thr_low;
-  uint16_t thr_ml;
-  uint16_t thr_mh;
-  uint16_t thr_high;
+  uint8_t thr_low;
+  uint8_t thr_ml;
+  uint8_t thr_mh;
+  uint8_t thr_high;
 };
 
 void spectrum_lmh_out(const float* spectrum, size_t n, float out[3],
