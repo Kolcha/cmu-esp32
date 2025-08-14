@@ -294,7 +294,7 @@ static void bt_audio_sink_init(const char* dev_name)
   esp_bluedroid_init();
   esp_bluedroid_enable();
 
-  esp_bt_dev_set_device_name(dev_name);
+  esp_bt_gap_set_device_name(dev_name);
 
   esp_avrc_ct_init();
   esp_avrc_ct_register_callback(avrc_cb);
