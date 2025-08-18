@@ -11,11 +11,43 @@ extern "C" {
 #include <BLE2901.h>
 #include <BLE2904.h>
 
+#include <type_traits>
+
 extern String device_name;
 extern bool swap_r_b_channels;
 
 extern struct analysis_cfg acfg;
 extern struct filter_opt f_options;
+
+
+template<typename T>
+struct ble_format_for_type;
+
+template<typename T>
+constexpr uint8_t ble_format_for_type_v = ble_format_for_type<T>::value;
+
+template<>
+struct ble_format_for_type<bool> : std::integral_constant<uint8_t, BLE2904::FORMAT_BOOLEAN> {};
+template<>
+struct ble_format_for_type<uint8_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_UINT8> {};
+template<>
+struct ble_format_for_type<uint16_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_UINT16> {};
+template<>
+struct ble_format_for_type<uint32_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_UINT32> {};
+template<>
+struct ble_format_for_type<uint64_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_UINT64> {};
+template<>
+struct ble_format_for_type<int8_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_SINT8> {};
+template<>
+struct ble_format_for_type<int16_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_SINT16> {};
+template<>
+struct ble_format_for_type<int32_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_SINT32> {};
+template<>
+struct ble_format_for_type<int64_t> : std::integral_constant<uint8_t, BLE2904::FORMAT_SINT64> {};
+template<>
+struct ble_format_for_type<float> : std::integral_constant<uint8_t, BLE2904::FORMAT_FLOAT32> {};
+template<>
+struct ble_format_for_type<double> : std::integral_constant<uint8_t, BLE2904::FORMAT_FLOAT64> {};
 
 constexpr uint16_t float_to_u16(float x) noexcept
 {
@@ -90,6 +122,18 @@ void fmt_raw_from_ble(BLECharacteristic* c, T& val)
 }
 
 
+template<typename T>
+struct RawValueFormat : ValueFormat<T> {
+  constexpr RawValueFormat() noexcept : ValueFormat<T>
+  {
+    .format = ble_format_for_type_v<T>,
+    .exponent = 0,
+    .to_ble = &fmt_raw_to_ble<T>,
+    .from_ble = &fmt_raw_from_ble<T>
+  } {}
+};
+
+
 void fmt_float_to_ble_u16(const float& val, BLECharacteristic* c)
 {
   auto v = float_to_u16(val);   // ugly interface requires reference
@@ -112,13 +156,8 @@ void fmt_string_from_ble(BLECharacteristic* c, String& val)
   val = c->getValue();
 }
 
-
-static const ValueFormat<uint8_t> fmt_u8_raw = {
-  .format = BLE2904::FORMAT_UINT8,
-  .exponent = 0,
-  .to_ble = &fmt_raw_to_ble<uint8_t>,
-  .from_ble = &fmt_raw_from_ble<uint8_t>,
-};
+static const RawValueFormat<uint8_t> fmt_u8_raw;
+static const RawValueFormat<bool> fmt_bool;
 
 static const ValueFormat<float> fmt_float_u16 = {
   .format = BLE2904::FORMAT_UINT16,
@@ -132,13 +171,6 @@ static const ValueFormat<String> fmt_string = {
   .exponent = 0,
   .to_ble = &fmt_string_to_ble,
   .from_ble = &fmt_string_from_ble,
-};
-
-static const ValueFormat<bool> fmt_bool = {
-  .format = BLE2904::FORMAT_BOOLEAN,
-  .exponent = 0,
-  .to_ble = &fmt_raw_to_ble<bool>,
-  .from_ble = &fmt_raw_from_ble<bool>,
 };
 
 
