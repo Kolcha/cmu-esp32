@@ -192,11 +192,11 @@ void ble_add_device_characteristics(BLEService* service)
   ble_add_option(service, opt_device_name,
                  "101588e6-7fb1-4992-963b-b2ef597fa49d",
                  fmt_string,
-                 "dev_name");
+                 "Device name");
   ble_add_option(service, opt_swap_channels,
                  "5a8b2bba-6319-46a6-b37e-520744f35bfe",
                  fmt_bool,
-                 "swap_r_b_channels");
+                 "Swap red and blue channels");
 }
 
 template<typename R, typename T>
@@ -239,36 +239,36 @@ void ble_add_filter_characteristics(BLEService* service)
   ble_add_option(service, opt_preamp,
                  "ef599dd1-35ad-4a35-a367-e4401693f02a",
                  fmt_float_u16,
-                 "preamp");
+                 "Input preamplifier gain");
   ble_add_option(service, opt_level_low,
                  "26ebeecb-c65e-4769-8bce-932e6814580e",
                  fmt_float_u16,
-                 "level_low");
+                 "Amplification level for low frequencies");
   ble_add_option(service, opt_level_mid,
                  "b4d3b959-a0f3-4b6a-b0d9-9ca6991563a0",
                  fmt_float_u16,
-                 "level_mid");
+                 "Amplification level for mid frequencies");
   ble_add_option(service, opt_level_high,
                  "1d1750a8-9235-4f1b-890c-512f87135d31",
                  fmt_float_u16,
-                 "level_high");
+                 "Amplification level for high frequencies");
   ble_add_levels_range(service, 0.f, 3.f);
 
   ble_add_option(service, opt_thr_low,
                  "f333456c-b5f0-4201-9ede-8c846b38556d",
                  fmt_u8_raw,
-                 "thr_low");
+                 "Threshold for low-frequency filter");
   ble_add_option(service, opt_thr_ml,
                  "a0532c1f-09b7-49aa-9131-13153d0fad75",
                  fmt_u8_raw,
-                 "thr_ml");
+                 "Lower bound threshold for mid-frequency filter");
   ble_add_option(service, opt_thr_mh,
                  "5c04fb0e-a31e-41a3-9635-1e1597729ea0",
                  fmt_u8_raw,
-                 "thr_mh");
+                 "Upper bound threshold for mid-frequency filter");
   ble_add_option(service, opt_thr_high,
                  "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
                  fmt_u8_raw,
-                 "thr_high");
+                 "Threshold for high-frequency filter");
   ble_add_thresholds_range(service, 0, 255);
 }
