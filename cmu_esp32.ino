@@ -42,6 +42,7 @@ extern "C" {
 // ----------------------------------------------------------
 struct device_opt d_options = {
   .swap_r_b_channels = true,
+  .enable_log_log_f_ks = true,
 };
 String device_name = "ESP_Speaker_K";
 
@@ -405,8 +406,10 @@ void loop()
 
   analyze_input(&acfg, input_buffer, fft_io_buffer);
 
-  for (int i = 0; i < FFT_SIZE; i++) {
-    fft_io_buffer[2*i + 1] *= 2 * log_log_f_ks[i];
+  if (d_options.enable_log_log_f_ks) {
+    for (int i = 0; i < FFT_SIZE; i++) {
+      fft_io_buffer[2*i + 1] *= 2 * log_log_f_ks[i];
+    }
   }
 
   spectrum_rgb_out(fft_io_buffer);

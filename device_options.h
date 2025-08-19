@@ -8,6 +8,7 @@
 
 struct device_opt {
   bool swap_r_b_channels;
+  bool enable_log_log_f_ks;
 };
 
 #endif /* _DEVICE_OPTIONS_H_ */

@@ -237,6 +237,7 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 
 static auto opt_device_name = ConfigValue(device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(d_options.swap_r_b_channels, "device", "swap_r_b");
+static auto opt_en_log_log_f = ConfigValue(d_options.enable_log_log_f_ks, "device", "en_log_log_f");
 
 static auto opt_preamp = ConfigValue(acfg.preamp, "filter", "preamp");
 static auto opt_level_low = ConfigValue(f_options.level_low, "filter", "level_low");
@@ -280,6 +281,10 @@ void ble_add_device_characteristics(BLEService* service)
                  "5a8b2bba-6319-46a6-b37e-520744f35bfe",
                  fmt_bool,
                  "Swap red and blue channels");
+  ble_add_option(service, opt_en_log_log_f,
+                 "b59c3a95-41e1-474c-a2e6-75a296a43024",
+                 fmt_bool,
+                 "Enable non-uniform amplification");
 
   ble_add_ro_value(service, get_prefs_free_entries_count,
                    "61d35402-cf8a-4267-a896-673bb74ebf3f",
