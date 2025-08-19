@@ -205,6 +205,7 @@ void fmt_string_from_ble(BLECharacteristic* c, String& val)
 }
 
 static const RawValueFormat<uint8_t> fmt_u8_raw;
+static const RawValueFormat<uint16_t> fmt_u16_raw;
 static const RawValueFormat<bool> fmt_bool;
 
 static const FloatValueFormat<float, uint16_t, -4> fmt_float_u16;
@@ -262,6 +263,12 @@ void load_values_from_config()
   opt_thr_high.load();
 }
 
+static uint16_t get_prefs_free_entries_count()
+{
+  Preferences prefs;
+  return static_cast<uint16_t>(prefs.freeEntries());
+}
+
 void ble_add_device_characteristics(BLEService* service)
 {
   ble_add_option(service, opt_device_name,
@@ -272,6 +279,12 @@ void ble_add_device_characteristics(BLEService* service)
                  "5a8b2bba-6319-46a6-b37e-520744f35bfe",
                  fmt_bool,
                  "Swap red and blue channels");
+
+  ble_add_ro_value(service, get_prefs_free_entries_count,
+                   "61d35402-cf8a-4267-a896-673bb74ebf3f",
+                   fmt_u16_raw,
+                   "Number of free config entries"
+                  );
 }
 
 template<typename R, typename T>

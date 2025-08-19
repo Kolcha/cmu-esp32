@@ -63,6 +63,24 @@ struct ValueFormat {
 
 
 template<typename T>
+class DynamicValueBinder : public BLECharacteristicCallbacks
+{
+public:
+  using getter_type = std::function<T()>;
+
+  DynamicValueBinder(getter_type getter, const ValueFormat<T>& format) noexcept
+    : _getter(std::move(getter)), _format(format)
+  {}
+
+  void onRead(BLECharacteristic* c) override { _format.to_ble(_getter(), c); }
+
+private:
+  getter_type _getter;
+  const ValueFormat<T>& _format;
+};
+
+
+template<typename T>
 class ValueBinder : public BLECharacteristicCallbacks
 {
 public:
@@ -131,6 +149,22 @@ BLECharacteristic* ble_add_value_impl(
   ble_characteristic_add_description(characteristic, description);
   return characteristic;
 }
+
+
+template<typename T>
+void ble_add_ro_value(
+  BLEService* service,
+  typename DynamicValueBinder<T>::getter_type getter,
+  const char* uuid,
+  const ValueFormat<T>& format,
+  const char* description
+)
+{
+  constexpr auto props = BLECharacteristic::PROPERTY_READ;
+  auto c = ble_add_value_impl(service, props, uuid, format, description);
+  c->setCallbacks(new DynamicValueBinder<T>(std::move(getter), format));
+}
+
 
 template<typename T>
 void ble_add_ro_value(
