@@ -4,6 +4,7 @@
 #include "device_options_ble.hpp"
 
 extern "C" {
+#include "device_options.h"
 #include "filter.h"
 #include "spectrum.h"
 }
@@ -14,8 +15,8 @@ extern "C" {
 #include <type_traits>
 
 extern String device_name;
-extern bool swap_r_b_channels;
 
+extern struct device_opt d_options;
 extern struct analysis_cfg acfg;
 extern struct filter_opt f_options;
 
@@ -235,7 +236,7 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 
 
 static auto opt_device_name = ConfigValue(device_name, "device", "dev_name");
-static auto opt_swap_channels = ConfigValue(swap_r_b_channels, "device", "swap_r_b");
+static auto opt_swap_channels = ConfigValue(d_options.swap_r_b_channels, "device", "swap_r_b");
 
 static auto opt_preamp = ConfigValue(acfg.preamp, "filter", "preamp");
 static auto opt_level_low = ConfigValue(f_options.level_low, "filter", "level_low");
