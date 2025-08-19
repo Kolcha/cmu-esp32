@@ -111,10 +111,55 @@ void ble_characteristic_add_value_range(BLECharacteristic* c, T vmin, T vmax)
 }
 
 template<typename T>
-void ble_characteristic_bind_value(BLECharacteristic* c, ConfigValue<T>& val, const ValueFormat<T>& fmt)
+void ble_characteristic_bind_value(BLECharacteristic* c, T& val, const ValueFormat<T>& fmt)
 {
-  c->setCallbacks(new ValueWriteCallback<T>(val, fmt));
+  c->setCallbacks(new ValueBinder<T>(val, fmt));
 }
+
+
+template<typename T>
+BLECharacteristic* ble_add_value_impl(
+  BLEService* service,
+  uint32_t props,
+  const char* uuid,
+  const ValueFormat<T>& format,
+  const char* description
+)
+{
+  auto characteristic = service->createCharacteristic(uuid, props);
+  ble_characteristic_add_format(characteristic, format.format, format.exponent);
+  ble_characteristic_add_description(characteristic, description);
+  return characteristic;
+}
+
+template<typename T>
+void ble_add_ro_value(
+  BLEService* service,
+  T& value,
+  const char* uuid,
+  const ValueFormat<T>& format,
+  const char* description
+)
+{
+  constexpr auto props = BLECharacteristic::PROPERTY_READ;
+  auto c = ble_add_value_impl(service, props, uuid, format, description);
+  ble_characteristic_bind_value(c, value, format);
+}
+
+template<typename T>
+void ble_add_rw_value(
+  BLEService* service,
+  T& value,
+  const char* uuid,
+  const ValueFormat<T>& format,
+  const char* description
+)
+{
+  constexpr auto props = BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE;
+  auto c = ble_add_value_impl(service, props, uuid, format, description);
+  ble_characteristic_bind_value(c, value, format);
+}
+
 
 template<typename T>
 void ble_add_option(
@@ -126,8 +171,6 @@ void ble_add_option(
 )
 {
   constexpr uint32_t rw_props = BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE;
-  auto characteristic = service->createCharacteristic(uuid, rw_props);
-  ble_characteristic_add_format(characteristic, format.format, format.exponent);
-  ble_characteristic_add_description(characteristic, description);
-  ble_characteristic_bind_value(characteristic, value, format);
+  auto characteristic = ble_add_value_impl(service, rw_props, uuid, format, description);
+  characteristic->setCallbacks(new ValueWriteCallback<T>(value, format));
 }
