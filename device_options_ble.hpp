@@ -63,22 +63,38 @@ struct ValueFormat {
 
 
 template<typename T>
-class ValueWriteCallback : public BLECharacteristicCallbacks
+class ValueBinder : public BLECharacteristicCallbacks
+{
+public:
+  ValueBinder(T& val, const ValueFormat<T>& fmt) noexcept
+    : _val(val), _fmt(fmt)
+  {}
+
+  void onRead(BLECharacteristic* c) override { _fmt.to_ble(_val, c); }
+  void onWrite(BLECharacteristic* c) override { _fmt.from_ble(c, _val); }
+
+private:
+  T& _val;
+  const ValueFormat<T>& _fmt;
+};
+
+
+template<typename T>
+class ValueWriteCallback : public ValueBinder<T>
 {
 public:
   ValueWriteCallback(ConfigValue<T>& val, const ValueFormat<T>& fmt) noexcept
-    : _val(val), _fmt(fmt)
+    : ValueBinder<T>(val.value(), fmt), _val(val)
   {}
 
   void onWrite(BLECharacteristic* c) override
   {
-    _fmt.from_ble(c, _val.value());
+    ValueBinder<T>::onWrite(c);
     _val.save();
   }
 
 private:
   ConfigValue<T>& _val;
-  const ValueFormat<T>& _fmt;
 };
 
 
@@ -98,7 +114,6 @@ template<typename T>
 void ble_characteristic_bind_value(BLECharacteristic* c, ConfigValue<T>& val, const ValueFormat<T>& fmt)
 {
   c->setCallbacks(new ValueWriteCallback<T>(val, fmt));
-  fmt.to_ble(val.value(), c);
 }
 
 template<typename T>
