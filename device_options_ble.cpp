@@ -49,14 +49,47 @@ struct ble_format_for_type<float> : std::integral_constant<uint8_t, BLE2904::FOR
 template<>
 struct ble_format_for_type<double> : std::integral_constant<uint8_t, BLE2904::FORMAT_FLOAT64> {};
 
+
+template<typename Float>
+constexpr Float pow10_int(int8_t n) noexcept
+{
+  Float res = 1;
+
+  if (n < 0) {
+    while (n++ < 0)
+      res /= 10;
+    return res;
+  }
+
+  if (n > 0) {
+    while (n-- > 0)
+      res *= 10;
+    return res;
+  }
+
+  return res;
+}
+
+template<typename Float, typename Int>
+constexpr Int float_to_int(Float x, int8_t e) noexcept
+{
+  return static_cast<Int>(std::round(x * pow10_int<Float>(-e)));
+}
+
+template<typename Float, typename Int>
+constexpr Float float_from_int(Int x, int8_t e) noexcept
+{
+  return x * pow10_int<Float>(e);
+}
+
 constexpr uint16_t float_to_u16(float x) noexcept
 {
-  return static_cast<uint16_t>(std::round(x * 10'000));
+  return float_to_int<float, uint16_t>(x, -4);
 }
 
 constexpr float float_from_u16(uint16_t x) noexcept
 {
-  return x * 0.0001f;
+  return float_from_int<float, uint16_t>(x, -4);
 }
 
 template<>
@@ -134,16 +167,31 @@ struct RawValueFormat : ValueFormat<T> {
 };
 
 
-void fmt_float_to_ble_u16(const float& val, BLECharacteristic* c)
+template<typename Float, typename Int, int8_t e>
+void fmt_float_to_ble_int(const Float& val, BLECharacteristic* c)
 {
-  auto v = float_to_u16(val);   // ugly interface requires reference
+  // ugly interface requires non-const reference
+  auto v = float_to_int<Float, Int>(val, e);
   c->setValue(v);
 }
 
-void fmt_float_from_ble_u16(BLECharacteristic* c, float& val)
+template<typename Float, typename Int, int8_t e>
+void fmt_float_from_ble_int(BLECharacteristic* c, Float& val)
 {
-  val = float_from_u16(*reinterpret_cast<uint16_t*>(c->getData()));
+  val = float_from_int<Float, Int>(*reinterpret_cast<Int*>(c->getData()), e);
 }
+
+
+template<typename Float, typename Int, int8_t e>
+struct FloatValueFormat : ValueFormat<Float> {
+  constexpr FloatValueFormat() noexcept : ValueFormat<Float>
+  {
+    .format = ble_format_for_type_v<Int>,
+    .exponent = e,
+    .to_ble = &fmt_float_to_ble_int<Float, Int, e>,
+    .from_ble = &fmt_float_from_ble_int<Float, Int, e>
+  } {}
+};
 
 
 void fmt_string_to_ble(const String& val, BLECharacteristic* c)
@@ -159,12 +207,7 @@ void fmt_string_from_ble(BLECharacteristic* c, String& val)
 static const RawValueFormat<uint8_t> fmt_u8_raw;
 static const RawValueFormat<bool> fmt_bool;
 
-static const ValueFormat<float> fmt_float_u16 = {
-  .format = BLE2904::FORMAT_UINT16,
-  .exponent = -4,
-  .to_ble = &fmt_float_to_ble_u16,
-  .from_ble = &fmt_float_from_ble_u16,
-};
+static const FloatValueFormat<float, uint16_t, -4> fmt_float_u16;
 
 static const ValueFormat<String> fmt_string = {
   .format = BLE2904::FORMAT_UTF8,
