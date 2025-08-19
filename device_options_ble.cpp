@@ -238,6 +238,8 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 static auto opt_device_name = ConfigValue(device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(d_options.swap_r_b_channels, "device", "swap_r_b");
 static auto opt_en_log_log_f = ConfigValue(d_options.enable_log_log_f_ks, "device", "en_log_log_f");
+static auto opt_en_gamma_corr = ConfigValue(d_options.enable_gamma_corr, "device", "en_gamma_corr");
+static auto opt_gamma_value = ConfigValue(d_options.gamma_value, "device", "gamma_value");
 
 static auto opt_preamp = ConfigValue(acfg.preamp, "filter", "preamp");
 static auto opt_level_low = ConfigValue(f_options.level_low, "filter", "level_low");
@@ -253,6 +255,9 @@ void load_values_from_config()
 {
   opt_device_name.load();
   opt_swap_channels.load();
+  opt_en_log_log_f.load();
+  opt_en_gamma_corr.load();
+  opt_gamma_value.load();
 
   opt_preamp.load();
   opt_level_low.load();
@@ -285,6 +290,18 @@ void ble_add_device_characteristics(BLEService* service)
                  "b59c3a95-41e1-474c-a2e6-75a296a43024",
                  fmt_bool,
                  "Enable non-uniform amplification");
+
+  ble_add_option(service, opt_en_gamma_corr,
+                 "bc5878ff-bf6f-460a-8db0-9d280ad9be3d",
+                 fmt_bool,
+                 "Enable gamma correction");
+  ble_add_option(service, opt_gamma_value,
+                 "47f5321d-27af-4ec4-b44f-49b082cf0505",
+                 fmt_float_u16,
+                 "Gamma value");
+  ble_characteristic_add_value_range(
+    service->getCharacteristic("47f5321d-27af-4ec4-b44f-49b082cf0505"),
+    float_to_u16(2.0f), float_to_u16(2.8f));
 
   ble_add_ro_value(service, get_prefs_free_entries_count,
                    "61d35402-cf8a-4267-a896-673bb74ebf3f",

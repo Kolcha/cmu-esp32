@@ -9,6 +9,8 @@
 struct device_opt {
   bool swap_r_b_channels;
   bool enable_log_log_f_ks;
+  bool enable_gamma_corr;
+  float gamma_value;
 };
 
 #endif /* _DEVICE_OPTIONS_H_ */

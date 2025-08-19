@@ -11,6 +11,7 @@ extern "C" {
 #include "fft_hann_1024.h"
 #include "fft_twiddles_512.h"
 #include "filter.h"
+#include "gamma.h"
 #include "spectrum.h"
 }
 #include "device_options_ble.hpp"
@@ -43,6 +44,8 @@ extern "C" {
 struct device_opt d_options = {
   .swap_r_b_channels = true,
   .enable_log_log_f_ks = true,
+  .enable_gamma_corr = false,
+  .gamma_value = 2.4,
 };
 String device_name = "ESP_Speaker_K";
 
@@ -211,6 +214,10 @@ static void spectrum_rgb_out(const float* spectrum)
   for (int i = 0; i < count_of(bars); i++)
     bars[i] = std::clamp(bars[i], 0.f, 1.f);
 
+  if (d_options.enable_gamma_corr)
+    for (int i = 0; i < count_of(bars); i++)
+      bars[i] = apply_gamma(bars[i], d_options.gamma_value);
+
   if (d_options.swap_r_b_channels)
     std::swap(bars[0], bars[2]);
 
@@ -342,7 +349,7 @@ static void ble_server_init(const char* dev_name)
   dev_man_c->setValue(String("Nick Korotysh"));
   i_service->start();
 
-  auto d_service = pServer->createService(BLEUUID(DEVICE_SERVICE_UUID), 16);
+  auto d_service = pServer->createService(BLEUUID(DEVICE_SERVICE_UUID), 32);
   ble_add_device_characteristics(d_service);
   d_service->start();
 
