@@ -302,8 +302,19 @@ static void avrc_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t* param)
 static void bt_audio_sink_init(const char* dev_name)
 {
   btStart();
-  esp_bluedroid_init();
+
+  esp_bluedroid_config_t bluedroid_cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
+  bluedroid_cfg.ssp_en = false;   // use legacy pairing with hardcoded PIN
+  esp_bluedroid_init_with_cfg(&bluedroid_cfg);
   esp_bluedroid_enable();
+
+  esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_FIXED;
+  esp_bt_pin_code_t pin_code;
+  pin_code[0] = '0';
+  pin_code[1] = '0';
+  pin_code[2] = '0';
+  pin_code[3] = '0';
+  esp_bt_gap_set_pin(pin_type, 4, pin_code);
 
   esp_bt_gap_set_device_name(dev_name);
 
