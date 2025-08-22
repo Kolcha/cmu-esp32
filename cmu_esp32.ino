@@ -249,14 +249,15 @@ static void handle_a2d_audio_cfg(const esp_a2d_cb_param_t* param)
   /* for now only SBC stream is supported */
   if (param->audio_cfg.mcc.type == ESP_A2D_MCT_SBC) {
     uint32_t sample_rate = 16000;
-    char oct0 = param->audio_cfg.mcc.cie.sbc[0];
-    if (oct0 & (0x01 << 6)) {
+    uint8_t samp_freq = param->audio_cfg.mcc.cie.sbc_info.samp_freq;
+    if (samp_freq & ESP_A2D_SBC_CIE_SF_32K) {
       sample_rate = 32000;
-    } else if (oct0 & (0x01 << 5)) {
+    } else if (samp_freq & ESP_A2D_SBC_CIE_SF_44K) {
       sample_rate = 44100;
-    } else if (oct0 & (0x01 << 4)) {
+    } else if (samp_freq & ESP_A2D_SBC_CIE_SF_48K) {
       sample_rate = 48000;
     }
+    Serial.printf("sample rate: %lu\n", sample_rate);
     frequencies_data_init(sample_rate);
   }
 }
