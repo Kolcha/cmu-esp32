@@ -326,6 +326,8 @@ static void bt_audio_sink_init(const char* dev_name)
   esp_a2d_register_callback(a2d_cb);
   esp_a2d_sink_register_data_callback(bt_data_cb);
 
+  esp_a2d_sink_get_delay_value();
+
   esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 }
 
