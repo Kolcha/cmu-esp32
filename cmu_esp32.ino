@@ -227,6 +227,45 @@ static void spectrum_rgb_out(const float* spectrum)
 // ----------------------------------------------------------
 //                  ESP32 BT stack callbacks
 // ----------------------------------------------------------
+static void bt_app_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t* param)
+{
+  switch (event) {
+    /* when authentication completed, this event comes */
+    case ESP_BT_GAP_AUTH_CMPL_EVT: {
+      if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
+        Serial.printf("authentication success: %s\n", param->auth_cmpl.device_name);
+      } else {
+        Serial.printf("authentication failed, status: %d\n", param->auth_cmpl.stat);
+      }
+      break;
+    }
+
+    /* when Security Simple Pairing user confirmation requested, this event comes */
+    case ESP_BT_GAP_CFM_REQ_EVT:
+      Serial.printf("ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %06"PRIu32"\n", param->cfm_req.num_val);
+      esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
+      break;
+    /* when Security Simple Pairing passkey notified, this event comes */
+    case ESP_BT_GAP_KEY_NOTIF_EVT:
+      Serial.printf("ESP_BT_GAP_KEY_NOTIF_EVT passkey: %06"PRIu32"\n", param->key_notif.passkey);
+      break;
+    /* when Security Simple Pairing passkey requested, this event comes */
+    case ESP_BT_GAP_KEY_REQ_EVT:
+      Serial.printf("ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!\n");
+      break;
+
+    /* when GAP mode changed, this event comes */
+    case ESP_BT_GAP_MODE_CHG_EVT:
+      Serial.printf("ESP_BT_GAP_MODE_CHG_EVT mode: %d\n", param->mode_chg.mode);
+      break;
+    /* others */
+    default: {
+      Serial.printf("event: %d\n", event);
+      break;
+    }
+  }
+}
+
 static void handle_a2d_connection_state(const esp_a2d_cb_param_t* param)
 {
   switch (param->conn_stat.state) {
@@ -303,11 +342,15 @@ static void bt_audio_sink_init(const char* dev_name)
 {
   btStart();
 
-  esp_bluedroid_config_t bluedroid_cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
-  bluedroid_cfg.ssp_en = false;   // use legacy pairing with hardcoded PIN
-  esp_bluedroid_init_with_cfg(&bluedroid_cfg);
+  esp_bluedroid_init();
   esp_bluedroid_enable();
 
+  /* set default parameters for Secure Simple Pairing */
+  esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
+  esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE;
+  esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
+
+  /* set default parameters for Legacy Pairing (use fixed pin code 0000) */
   esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_FIXED;
   esp_bt_pin_code_t pin_code;
   pin_code[0] = '0';
@@ -317,6 +360,7 @@ static void bt_audio_sink_init(const char* dev_name)
   esp_bt_gap_set_pin(pin_type, 4, pin_code);
 
   esp_bt_gap_set_device_name(dev_name);
+  esp_bt_gap_register_callback(bt_app_gap_cb);
 
   esp_avrc_ct_init();
   esp_avrc_ct_register_callback(avrc_cb);
