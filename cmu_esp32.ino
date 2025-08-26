@@ -11,7 +11,6 @@ extern "C" {
 #include "fft_hann_1024.h"
 #include "fft_twiddles_512.h"
 #include "filter.h"
-#include "gamma.h"
 #include "spectrum.h"
 }
 #include "device_options_ble.hpp"

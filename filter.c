@@ -3,6 +3,8 @@
 
 #include "filter.h"
 
+#include <tgmath.h>
+
 #include "spectrum.h"
 
 void spectrum_lmh_out(const float* spectrum, size_t n, float out[],
@@ -19,4 +21,20 @@ void spectrum_lmh_out(const float* spectrum, size_t n, float out[],
   out[0] *= opt->level_low;
   out[1] *= opt->level_mid;
   out[2] *= opt->level_high;
+}
+
+static float gamma_func(float x, float g)
+{
+  return pow((x + 0.055f) / (1.0f + 0.055f), g);
+}
+
+static float approx_k(float thr, float g)
+{
+  return thr / gamma_func(thr, g);
+}
+
+float apply_gamma(float x, float g)
+{
+  const float thr = 0.04045f;
+  return (x > thr) ? gamma_func(x, g) : (x / approx_k(thr, g));
 }

@@ -21,4 +21,6 @@ struct filter_opt {
 void spectrum_lmh_out(const float* spectrum, size_t n, float out[3],
                       const struct filter_opt* opt);
 
+float apply_gamma(float x, float g);
+
 #endif /* _FILTER_H_ */
