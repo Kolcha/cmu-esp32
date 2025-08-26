@@ -8,6 +8,7 @@ extern "C" {
 #include "filter.h"
 #include "spectrum.h"
 }
+#include <esp_heap_caps.h>
 
 #include <BLE2901.h>
 #include <BLE2904.h>
@@ -207,6 +208,7 @@ void fmt_string_from_ble(BLECharacteristic* c, String& val)
 
 static const RawValueFormat<uint8_t> fmt_u8_raw;
 static const RawValueFormat<uint16_t> fmt_u16_raw;
+static const RawValueFormat<uint32_t> fmt_u32_raw;
 static const RawValueFormat<bool> fmt_bool;
 
 static const FloatValueFormat<float, uint16_t, -4> fmt_float_u16;
@@ -276,6 +278,11 @@ static uint16_t get_prefs_free_entries_count()
   return static_cast<uint16_t>(prefs.freeEntries());
 }
 
+static uint32_t get_minimum_free_mem()
+{
+  return heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+}
+
 void ble_add_device_characteristics(BLEService* service)
 {
   ble_add_option(service, opt_device_name,
@@ -308,6 +315,10 @@ void ble_add_device_characteristics(BLEService* service)
                    fmt_u16_raw,
                    "Number of free config entries"
                   );
+  ble_add_ro_value(service, get_minimum_free_mem,
+                   "32a34428-4456-4d62-a2f5-2fc7eaadeb97",
+                   fmt_u32_raw,
+                   "Total minimum free memory since boot");
 }
 
 template<typename R, typename T>
