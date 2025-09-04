@@ -29,7 +29,7 @@ extern "C" {
 #define SAMPLES_COUNT       1024
 #define FFT_SIZE        (SAMPLES_COUNT/2)
 
-#define RGB_PWM_FREQ        50000
+#define RGB_PWM_FREQ        75000
 #define RGB_PWM_BITS        10
 
 #define DEVICE_SERVICE_UUID     "8af2e1aa-6cfa-4cd8-a9f9-54243e04d9c7"
@@ -41,10 +41,10 @@ extern "C" {
 //                    device configuration
 // ----------------------------------------------------------
 struct device_opt d_options = {
-  .swap_r_b_channels = true,
+  .swap_r_b_channels = false,
   .enable_log_log_f_ks = true,
-  .enable_gamma_corr = false,
-  .gamma_value = 2.4,
+  .enable_gamma_corr = true,
+  .gamma_value = 2.8,
 };
 String device_name = "ESP_Speaker_K";
 
@@ -73,12 +73,12 @@ struct analysis_cfg acfg = {
 
 struct filter_opt f_options = {
   .level_low = 0.8,
-  .level_mid = 1.5,
-  .level_high = 2.5,
-  .thr_low = 3,
-  .thr_ml = 4,
-  .thr_mh = 17,
-  .thr_high = 18,
+  .level_mid = 1.25,
+  .level_high = 1.85,
+  .thr_low = 2,
+  .thr_ml = 3,
+  .thr_mh = 18,
+  .thr_high = 19,
 };
 
 // calculate by-frequency amplification coefficients
