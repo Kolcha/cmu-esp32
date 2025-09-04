@@ -42,7 +42,6 @@ extern "C" {
 // ----------------------------------------------------------
 struct device_opt d_options = {
   .swap_r_b_channels = false,
-  .enable_log_log_f_ks = true,
   .enable_gamma_corr = true,
   .gamma_value = 2.8,
 };
@@ -463,10 +462,8 @@ void loop()
 
   analyze_input(&acfg, input_buffer, fft_io_buffer);
 
-  if (d_options.enable_log_log_f_ks) {
-    for (int i = 0; i < FFT_SIZE; i++) {
-      fft_io_buffer[2*i + 1] *= 2 * log_log_f_ks[i];
-    }
+  for (int i = 0; i < FFT_SIZE; i++) {
+    fft_io_buffer[2*i + 1] *= 2 * log_log_f_ks[i];
   }
 
   spectrum_rgb_out(fft_io_buffer);
