@@ -8,7 +8,6 @@
 
 struct device_opt {
   bool swap_r_b_channels;
-  bool enable_gamma_corr;
   float gamma_value;
 };
 

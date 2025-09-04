@@ -42,7 +42,6 @@ extern "C" {
 // ----------------------------------------------------------
 struct device_opt d_options = {
   .swap_r_b_channels = false,
-  .enable_gamma_corr = true,
   .gamma_value = 2.8,
 };
 String device_name = "ESP_Speaker_K";
@@ -205,9 +204,8 @@ static void spectrum_rgb_out(const float* spectrum)
   for (int i = 0; i < count_of(bars); i++)
     bars[i] = std::clamp(bars[i], 0.f, 1.f);
 
-  if (d_options.enable_gamma_corr)
-    for (int i = 0; i < count_of(bars); i++)
-      bars[i] = apply_gamma(bars[i], d_options.gamma_value);
+  for (int i = 0; i < count_of(bars); i++)
+    bars[i] = std::pow(bars[i], d_options.gamma_value);
 
   if (d_options.swap_r_b_channels)
     std::swap(bars[0], bars[2]);

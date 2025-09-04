@@ -239,7 +239,6 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 
 static auto opt_device_name = ConfigValue(device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(d_options.swap_r_b_channels, "device", "swap_r_b");
-static auto opt_en_gamma_corr = ConfigValue(d_options.enable_gamma_corr, "device", "en_gamma_corr");
 static auto opt_gamma_value = ConfigValue(d_options.gamma_value, "device", "gamma_value");
 
 static auto opt_preamp = ConfigValue(acfg.preamp, "filter", "preamp");
@@ -256,7 +255,6 @@ void load_values_from_config()
 {
   opt_device_name.load();
   opt_swap_channels.load();
-  opt_en_gamma_corr.load();
   opt_gamma_value.load();
 
   opt_preamp.load();
@@ -286,10 +284,6 @@ void ble_add_device_characteristics(BLEService* service)
                  fmt_bool,
                  "Swap red and blue channels");
 
-  ble_add_option(service, opt_en_gamma_corr,
-                 "bc5878ff-bf6f-460a-8db0-9d280ad9be3d",
-                 fmt_bool,
-                 "Enable gamma correction");
   ble_add_option(service, opt_gamma_value,
                  "47f5321d-27af-4ec4-b44f-49b082cf0505",
                  fmt_float_u16,
