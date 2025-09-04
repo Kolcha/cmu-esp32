@@ -196,13 +196,6 @@ static void pwm_rgb_set(float r, float g, float b)
   ledcWriteChannel(0, static_cast<uint32_t>(std::lround(r*max_value)));
   ledcWriteChannel(1, static_cast<uint32_t>(std::lround(g*max_value)));
   ledcWriteChannel(2, static_cast<uint32_t>(std::lround(b*max_value)));
-
-  static int ticks_to_wait = 100;
-  static int ticks_counter = 0;
-  if (++ticks_counter == ticks_to_wait) {
-    ticks_counter = 0;
-    Serial.printf("r: %.2f, g: %.2f, b: %.2f\n", r, g, b);
-  }
 }
 
 static void spectrum_rgb_out(const float* spectrum)
