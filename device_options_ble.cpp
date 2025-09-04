@@ -270,12 +270,6 @@ void load_values_from_config()
   opt_thr_high.load();
 }
 
-static uint16_t get_prefs_free_entries_count()
-{
-  Preferences prefs;
-  return static_cast<uint16_t>(prefs.freeEntries());
-}
-
 static uint32_t get_minimum_free_mem()
 {
   return heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
@@ -301,11 +295,6 @@ void ble_add_device_characteristics(BLEService* service)
                  fmt_float_u16,
                  "Gamma value");
 
-  ble_add_ro_value(service, get_prefs_free_entries_count,
-                   "61d35402-cf8a-4267-a896-673bb74ebf3f",
-                   fmt_u16_raw,
-                   "Number of free config entries"
-                  );
   ble_add_ro_value(service, get_minimum_free_mem,
                    "32a34428-4456-4d62-a2f5-2fc7eaadeb97",
                    fmt_u32_raw,
