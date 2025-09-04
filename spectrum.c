@@ -12,6 +12,11 @@ void frequencies_data(float* freq, size_t sample_rate, size_t n)
   }
 }
 
+static float clamp_range(float v, float lo, float hi)
+{
+  return v < lo ? lo : hi < v ? hi : v;
+}
+
 // converts raw_input into the form expected by FFT algorithm
 // implementation depends on FFT algorithm input format
 // raw_input - 16bit stereo input, size must be 2*ns
@@ -27,7 +32,8 @@ static void prepare_fft_input(const struct analysis_cfg* cfg,
   for (; raw_input != raw_input_end; raw_input += 2) {
     int16_t ch1 = *(raw_input+0);
     int16_t ch2 = *(raw_input+1);
-    *input++ = (ch1 + ch2) / 2.f / 32768.f * cfg->preamp * *window++;
+    float in = (ch1 + ch2) / 2.f / 32768.f * cfg->preamp;
+    *input++ = clamp_range(in, -1.f, +1.f) * *window++;
   }
 }
 
@@ -76,11 +82,6 @@ void magnitudes_to_decibels(float* spectrum, size_t n)
     // ref == 1.0 because of float [-1, 1] FFT input
     *m = 20 * log10(*m / 1.f);    // convert to dBFS
   }
-}
-
-static float clamp_range(float v, float lo, float hi)
-{
-  return v < lo ? lo : hi < v ? hi : v;
 }
 
 void clamp_spectrum_range(float lo, float hi, float* spectrum, size_t n)
