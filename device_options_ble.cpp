@@ -172,9 +172,7 @@ struct RawValueFormat : ValueFormat<T> {
 template<typename Float, typename Int, int8_t e>
 void fmt_float_to_ble_int(const Float& val, BLECharacteristic* c)
 {
-  // ugly interface requires non-const reference
-  auto v = float_to_int<Float, Int>(val, e);
-  c->setValue(v);
+  c->setValue(float_to_int<Float, Int>(val, e));
 }
 
 template<typename Float, typename Int, int8_t e>
