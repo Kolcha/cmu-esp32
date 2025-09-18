@@ -1,3 +1,4 @@
+#include <stdint.h>
 // SPDX-FileCopyrightText: 2025 Nick Korotysh <nick.korotysh@gmail.com>
 // SPDX-License-Identifier: MIT
 
@@ -95,51 +96,51 @@ constexpr float float_from_u16(uint16_t x) noexcept
 }
 
 template<>
-void ConfigValue<uint8_t>::write(Preferences& prefs)
+void ConfigValue<uint8_t>::write(Preferences& prefs, const uint8_t& val)
 {
-  prefs.putUChar(_key, _val);
+  prefs.putUChar(_key, val);
 }
 
 template<>
-void ConfigValue<uint8_t>::read(Preferences& prefs)
+uint8_t ConfigValue<uint8_t>::read(Preferences& prefs, const uint8_t& def)
 {
-  _val = prefs.getUChar(_key, _val);
+  return prefs.getUChar(_key, def);
 }
 
 template<>
-void ConfigValue<float>::write(Preferences& prefs)
+void ConfigValue<float>::write(Preferences& prefs, const float& val)
 {
-  prefs.putUShort(_key, float_to_u16(_val));
+  prefs.putUShort(_key, float_to_u16(val));
 }
 
 template<>
-void ConfigValue<float>::read(Preferences& prefs)
+float ConfigValue<float>::read(Preferences& prefs, const float& def)
 {
-  _val = float_from_u16(prefs.getUShort(_key, float_to_u16(_val)));
+  return float_from_u16(prefs.getUShort(_key, float_to_u16(def)));
 }
 
 template<>
-void ConfigValue<String>::write(Preferences& prefs)
+void ConfigValue<String>::write(Preferences& prefs, const String& val)
 {
-  prefs.putString(_key, _val);
+  prefs.putString(_key, val);
 }
 
 template<>
-void ConfigValue<String>::read(Preferences& prefs)
+String ConfigValue<String>::read(Preferences& prefs, const String& def)
 {
-  _val = prefs.getString(_key, _val);
+  return prefs.getString(_key, def);
 }
 
 template<>
-void ConfigValue<bool>::write(Preferences& prefs)
+void ConfigValue<bool>::write(Preferences& prefs, const bool& val)
 {
-  prefs.putBool(_key, _val);
+  prefs.putBool(_key, val);
 }
 
 template<>
-void ConfigValue<bool>::read(Preferences& prefs)
+bool ConfigValue<bool>::read(Preferences& prefs, const bool& def)
 {
-  _val = prefs.getBool(_key, _val);
+  return prefs.getBool(_key, def);
 }
 
 
@@ -305,19 +306,19 @@ static uint32_t get_minimum_free_mem()
 
 void ble_add_device_characteristics(BLEService* service)
 {
-  ble_add_option(service, opt_device_name,
-                 "101588e6-7fb1-4992-963b-b2ef597fa49d",
-                 fmt_string,
-                 "Device name");
-  ble_add_option(service, opt_swap_channels,
-                 "5a8b2bba-6319-46a6-b37e-520744f35bfe",
-                 fmt_bool,
-                 "Swap red and blue channels");
+  ble_add_rw_value(service, opt_device_name,
+                   "101588e6-7fb1-4992-963b-b2ef597fa49d",
+                   fmt_string,
+                   "Device name");
+  ble_add_rw_value(service, opt_swap_channels,
+                   "5a8b2bba-6319-46a6-b37e-520744f35bfe",
+                   fmt_bool,
+                   "Swap red and blue channels");
 
-  ble_add_option(service, opt_gamma_value,
-                 "47f5321d-27af-4ec4-b44f-49b082cf0505",
-                 fmt_float_u16,
-                 "Gamma value");
+  ble_add_rw_value(service, opt_gamma_value,
+                   "47f5321d-27af-4ec4-b44f-49b082cf0505",
+                   fmt_float_u16,
+                   "Gamma value");
 
   ble_add_ro_value(service, get_minimum_free_mem,
                    "32a34428-4456-4d62-a2f5-2fc7eaadeb97",
@@ -335,29 +336,29 @@ void ble_bulk_add_range(BLEService* service, R&& uuids, T vmin, T vmax)
 
 void ble_add_filter_characteristics(BLEService* service)
 {
-  ble_add_option(service, opt_preamp,
-                 "ef599dd1-35ad-4a35-a367-e4401693f02a",
-                 fmt_float_u16,
-                 "Input preamplifier gain");
-  ble_add_option(service, opt_level_low,
-                 "26ebeecb-c65e-4769-8bce-932e6814580e",
-                 fmt_float_u16,
-                 "Amplification level for low frequencies");
-  ble_add_option(service, opt_level_mid,
-                 "b4d3b959-a0f3-4b6a-b0d9-9ca6991563a0",
-                 fmt_float_u16,
-                 "Amplification level for mid frequencies");
-  ble_add_option(service, opt_level_high,
-                 "1d1750a8-9235-4f1b-890c-512f87135d31",
-                 fmt_float_u16,
-                 "Amplification level for high frequencies");
+  ble_add_rw_value(service, opt_preamp,
+                   "ef599dd1-35ad-4a35-a367-e4401693f02a",
+                   fmt_float_u16,
+                   "Input preamplifier gain");
+  ble_add_rw_value(service, opt_level_low,
+                   "26ebeecb-c65e-4769-8bce-932e6814580e",
+                   fmt_float_u16,
+                   "Amplification level for low frequencies");
+  ble_add_rw_value(service, opt_level_mid,
+                   "b4d3b959-a0f3-4b6a-b0d9-9ca6991563a0",
+                   fmt_float_u16,
+                   "Amplification level for mid frequencies");
+  ble_add_rw_value(service, opt_level_high,
+                   "1d1750a8-9235-4f1b-890c-512f87135d31",
+                   fmt_float_u16,
+                   "Amplification level for high frequencies");
 
-  ble_add_option(service, opt_thr_low,
-                 "f333456c-b5f0-4201-9ede-8c846b38556d",
-                 fmt_u8_raw,
-                 "Threshold for low-frequency filter");
-  ble_add_option(service, opt_thr_high,
-                 "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
-                 fmt_u8_raw,
-                 "Threshold for high-frequency filter");
+  ble_add_rw_value(service, opt_thr_low,
+                   "f333456c-b5f0-4201-9ede-8c846b38556d",
+                   fmt_u8_raw,
+                   "Threshold for low-frequency filter");
+  ble_add_rw_value(service, opt_thr_high,
+                   "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
+                   fmt_u8_raw,
+                   "Threshold for high-frequency filter");
 }

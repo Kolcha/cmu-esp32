@@ -25,14 +25,6 @@ public:
 
   virtual T get() const = 0;
   virtual void set(T v) = 0;
-
-  // compatibility stuff
-  Value<T>& operator=(T v) noexcept
-  {
-    set(std::move(v));
-    return *this;
-  }
-  inline operator T() const { return get(); }
 };
 
 
@@ -61,7 +53,7 @@ public:
   T get() const override { return _val.get(); }
   void set(T v) override { _val.set(std::move(v)); }
 
-protected:
+private:
   Value<T>& _val;
 };
 
@@ -69,6 +61,8 @@ protected:
 template<typename T>
 class ConfigValue : public ValueDecorator<T>
 {
+  using Parent = ValueDecorator<T>;
+
 public:
   ConfigValue(Value<T>& val, const char* sec, const char* key) noexcept
     : ValueDecorator<T>(val)
@@ -77,7 +71,7 @@ public:
 
   void set(T v) override
   {
-    ValueDecorator<T>::set(std::move(v));
+    Parent::set(std::move(v));
     save();
   }
 
@@ -85,7 +79,7 @@ public:
   {
     Preferences prefs;
     prefs.begin(_sec, false);
-    write(prefs);
+    write(prefs, Parent::get());
     prefs.end();
   }
 
@@ -93,13 +87,13 @@ public:
   {
     Preferences prefs;
     prefs.begin(_sec, true);
-    read(prefs);
+    Parent::set(read(prefs, Parent::get()));
     prefs.end();
   }
 
 protected:
-  void write(Preferences& prefs);
-  void read(Preferences& prefs);
+  void write(Preferences& prefs, const T& val);
+  T read(Preferences& prefs, const T& def);
 
 private:
   const char* const _sec;
@@ -236,6 +230,3 @@ void ble_add_rw_value(
   constexpr auto props = BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE;
   ble_add_value_impl(service, value, props, uuid, format, description);
 }
-
-// compatibility stuff
-#define ble_add_option    ble_add_rw_value
