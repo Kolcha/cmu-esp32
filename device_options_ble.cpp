@@ -235,19 +235,33 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 }
 
 
-static auto opt_device_name = ConfigValue(device_name, "device", "dev_name");
-static auto opt_swap_channels = ConfigValue(d_options.swap_r_b_channels, "device", "swap_r_b");
-static auto opt_gamma_value = ConfigValue(d_options.gamma_value, "device", "gamma_value");
+static auto val_device_name = SimpleValue(device_name);
+static auto val_swap_channels = SimpleValue(d_options.swap_r_b_channels);
+static auto val_gamma_value = SimpleValue(d_options.gamma_value);
 
-static auto opt_preamp = ConfigValue(acfg.preamp, "filter", "preamp");
-static auto opt_level_low = ConfigValue(f_options.level_low, "filter", "level_low");
-static auto opt_level_mid = ConfigValue(f_options.level_mid, "filter", "level_mid");
-static auto opt_level_high = ConfigValue(f_options.level_high, "filter", "level_high");
+static auto val_preamp = SimpleValue(acfg.preamp);
+static auto val_level_low = SimpleValue(f_options.level_low);
+static auto val_level_mid = SimpleValue(f_options.level_mid);
+static auto val_level_high = SimpleValue(f_options.level_high);
 
-static auto opt_thr_low = ConfigValue(f_options.thr_low, "filter", "thr_low");
-static auto opt_thr_ml = ConfigValue(f_options.thr_ml, "filter", "thr_ml");
-static auto opt_thr_mh = ConfigValue(f_options.thr_mh, "filter", "thr_mh");
-static auto opt_thr_high = ConfigValue(f_options.thr_high, "filter", "thr_high");
+static auto val_thr_low = SimpleValue(f_options.thr_low);
+static auto val_thr_ml = SimpleValue(f_options.thr_ml);
+static auto val_thr_mh = SimpleValue(f_options.thr_mh);
+static auto val_thr_high = SimpleValue(f_options.thr_high);
+
+static auto opt_device_name = ConfigValue(val_device_name, "device", "dev_name");
+static auto opt_swap_channels = ConfigValue(val_swap_channels, "device", "swap_r_b");
+static auto opt_gamma_value = ConfigValue(val_gamma_value, "device", "gamma_value");
+
+static auto opt_preamp = ConfigValue(val_preamp, "filter", "preamp");
+static auto opt_level_low = ConfigValue(val_level_low, "filter", "level_low");
+static auto opt_level_mid = ConfigValue(val_level_mid, "filter", "level_mid");
+static auto opt_level_high = ConfigValue(val_level_high, "filter", "level_high");
+
+static auto opt_thr_low = ConfigValue(val_thr_low, "filter", "thr_low");
+static auto opt_thr_ml = ConfigValue(val_thr_ml, "filter", "thr_ml");
+static auto opt_thr_mh = ConfigValue(val_thr_mh, "filter", "thr_mh");
+static auto opt_thr_high = ConfigValue(val_thr_high, "filter", "thr_high");
 
 void load_values_from_config()
 {

@@ -16,12 +16,68 @@ void ble_add_filter_characteristics(BLEService* service);
 
 
 template<typename T>
-class ConfigValue
+class Value
 {
 public:
-  ConfigValue(T& val, const char* sec, const char* key) noexcept
-    : _val(val), _sec(sec), _key(key)
+  virtual ~Value() = default;
+
+  virtual T get() const = 0;
+  virtual void set(T v) = 0;
+
+  // compatibility stuff
+  Value<T>& operator=(T v) noexcept
+  {
+    set(std::move(v));
+    return *this;
+  }
+  inline operator T() const { return get(); }
+};
+
+
+template<typename T>
+class SimpleValue final : public Value<T>
+{
+public:
+  explicit SimpleValue(T& v) noexcept : _v(v) {}
+
+  T get() const noexcept override { return _v; }
+  void set(T v) noexcept override { _v = std::move(v); }
+
+private:
+  T& _v;
+};
+
+
+template<typename T>
+class ValueDecorator : public Value<T>
+{
+public:
+  explicit ValueDecorator(Value<T>& val) noexcept
+    : _val(val)
   {}
+
+  T get() const override { return _val.get(); }
+  void set(T v) override { _val.set(std::move(v)); }
+
+protected:
+  Value<T>& _val;
+};
+
+
+template<typename T>
+class ConfigValue : public ValueDecorator<T>
+{
+public:
+  ConfigValue(Value<T>& val, const char* sec, const char* key) noexcept
+    : ValueDecorator<T>(val)
+    , _sec(sec), _key(key)
+  {}
+
+  void set(T v) override
+  {
+    ValueDecorator<T>::set(std::move(v));
+    save();
+  }
 
   void save()
   {
@@ -39,15 +95,11 @@ public:
     prefs.end();
   }
 
-  T& value() noexcept { return _val; }
-  const T& value() const noexcept { return _val; }
-
 protected:
   void write(Preferences& prefs);
   void read(Preferences& prefs);
 
 private:
-  T& _val;
   const char* const _sec;
   const char* const _key;
 };
@@ -84,35 +136,25 @@ template<typename T>
 class ValueBinder : public BLECharacteristicCallbacks
 {
 public:
-  ValueBinder(T& val, const ValueFormat<T>& fmt) noexcept
+  ValueBinder(Value<T>& val, const ValueFormat<T>& fmt) noexcept
     : _val(val), _fmt(fmt)
   {}
 
-  void onRead(BLECharacteristic* c) override { _fmt.to_ble(_val, c); }
-  void onWrite(BLECharacteristic* c) override { _fmt.from_ble(c, _val); }
-
-private:
-  T& _val;
-  const ValueFormat<T>& _fmt;
-};
-
-
-template<typename T>
-class ValueWriteCallback : public ValueBinder<T>
-{
-public:
-  ValueWriteCallback(ConfigValue<T>& val, const ValueFormat<T>& fmt) noexcept
-    : ValueBinder<T>(val.value(), fmt), _val(val)
-  {}
+  void onRead(BLECharacteristic* c) override
+  {
+    _fmt.to_ble(_val.get(), c);
+  }
 
   void onWrite(BLECharacteristic* c) override
   {
-    ValueBinder<T>::onWrite(c);
-    _val.save();
+    T v{};
+    _fmt.from_ble(c, v);
+    _val.set(std::move(v));
   }
 
 private:
-  ConfigValue<T>& _val;
+  Value<T>& _val;
+  const ValueFormat<T>& _fmt;
 };
 
 
@@ -129,15 +171,16 @@ void ble_characteristic_add_value_range(BLECharacteristic* c, T vmin, T vmax)
 }
 
 template<typename T>
-void ble_characteristic_bind_value(BLECharacteristic* c, T& val, const ValueFormat<T>& fmt)
+void ble_characteristic_bind_value(BLECharacteristic* c, Value<T>& val, const ValueFormat<T>& fmt)
 {
   c->setCallbacks(new ValueBinder<T>(val, fmt));
 }
 
 
 template<typename T>
-BLECharacteristic* ble_add_value_impl(
+void ble_add_value_impl(
   BLEService* service,
+  Value<T>& value,
   uint32_t props,
   const char* uuid,
   const ValueFormat<T>& format,
@@ -145,11 +188,10 @@ BLECharacteristic* ble_add_value_impl(
 )
 {
   auto characteristic = service->createCharacteristic(uuid, props);
+  ble_characteristic_bind_value(characteristic, value, format);
   ble_characteristic_add_format(characteristic, format.format, format.exponent);
   ble_characteristic_add_description(characteristic, description);
-  return characteristic;
 }
-
 
 template<typename T>
 void ble_add_ro_value(
@@ -161,50 +203,37 @@ void ble_add_ro_value(
 )
 {
   constexpr auto props = BLECharacteristic::PROPERTY_READ;
-  auto c = ble_add_value_impl(service, props, uuid, format, description);
+  auto c = service->createCharacteristic(uuid, props);
+  ble_characteristic_add_format(c, format.format, format.exponent);
+  ble_characteristic_add_description(c, description);
   c->setCallbacks(new DynamicValueBinder<T>(std::move(getter), format));
 }
-
 
 template<typename T>
 void ble_add_ro_value(
   BLEService* service,
-  T& value,
+  Value<T>& value,
   const char* uuid,
   const ValueFormat<T>& format,
   const char* description
 )
 {
   constexpr auto props = BLECharacteristic::PROPERTY_READ;
-  auto c = ble_add_value_impl(service, props, uuid, format, description);
-  ble_characteristic_bind_value(c, value, format);
+  ble_add_value_impl(service, value, props, uuid, format, description);
 }
 
 template<typename T>
 void ble_add_rw_value(
   BLEService* service,
-  T& value,
+  Value<T>& value,
   const char* uuid,
   const ValueFormat<T>& format,
   const char* description
 )
 {
   constexpr auto props = BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE;
-  auto c = ble_add_value_impl(service, props, uuid, format, description);
-  ble_characteristic_bind_value(c, value, format);
+  ble_add_value_impl(service, value, props, uuid, format, description);
 }
 
-
-template<typename T>
-void ble_add_option(
-  BLEService* service,
-  ConfigValue<T>& value,
-  const char* uuid,
-  const ValueFormat<T>& format,
-  const char* description
-)
-{
-  constexpr uint32_t rw_props = BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE;
-  auto characteristic = ble_add_value_impl(service, rw_props, uuid, format, description);
-  characteristic->setCallbacks(new ValueWriteCallback<T>(value, format));
-}
+// compatibility stuff
+#define ble_add_option    ble_add_rw_value
