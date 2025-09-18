@@ -1,4 +1,3 @@
-#include <stdint.h>
 // SPDX-FileCopyrightText: 2025 Nick Korotysh <nick.korotysh@gmail.com>
 // SPDX-License-Identifier: MIT
 
