@@ -19,6 +19,8 @@ template<typename T>
 class Value
 {
 public:
+  using value_type = T;
+
   virtual ~Value() = default;
 
   virtual T get() const = 0;

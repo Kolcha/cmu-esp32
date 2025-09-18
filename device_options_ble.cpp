@@ -244,10 +244,32 @@ static auto val_level_low = SimpleValue(f_options.level_low);
 static auto val_level_mid = SimpleValue(f_options.level_mid);
 static auto val_level_high = SimpleValue(f_options.level_high);
 
-static auto val_thr_low = SimpleValue(f_options.thr_low);
-static auto val_thr_ml = SimpleValue(f_options.thr_ml);
-static auto val_thr_mh = SimpleValue(f_options.thr_mh);
-static auto val_thr_high = SimpleValue(f_options.thr_high);
+class ThresholdLowValue : public Value<decltype(f_options.thr_low)>
+{
+public:
+  void set(value_type v) noexcept override
+  {
+    f_options.thr_low = v;
+    f_options.thr_ml = v + 1;
+  }
+
+  value_type get() const noexcept override { return f_options.thr_low; }
+};
+
+class ThresholdHighValue : public Value<decltype(f_options.thr_high)>
+{
+public:
+  void set(value_type v) noexcept override
+  {
+    f_options.thr_high = v;
+    f_options.thr_mh = v - 1;
+  }
+
+  value_type get() const noexcept override { return f_options.thr_high; }
+};
+
+static auto val_thr_low = ThresholdLowValue();
+static auto val_thr_high = ThresholdHighValue();
 
 static auto opt_device_name = ConfigValue(val_device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(val_swap_channels, "device", "swap_r_b");
@@ -259,8 +281,6 @@ static auto opt_level_mid = ConfigValue(val_level_mid, "filter", "level_mid");
 static auto opt_level_high = ConfigValue(val_level_high, "filter", "level_high");
 
 static auto opt_thr_low = ConfigValue(val_thr_low, "filter", "thr_low");
-static auto opt_thr_ml = ConfigValue(val_thr_ml, "filter", "thr_ml");
-static auto opt_thr_mh = ConfigValue(val_thr_mh, "filter", "thr_mh");
 static auto opt_thr_high = ConfigValue(val_thr_high, "filter", "thr_high");
 
 void load_values_from_config()
@@ -275,8 +295,6 @@ void load_values_from_config()
   opt_level_high.load();
 
   opt_thr_low.load();
-  opt_thr_ml.load();
-  opt_thr_mh.load();
   opt_thr_high.load();
 }
 
@@ -338,14 +356,6 @@ void ble_add_filter_characteristics(BLEService* service)
                  "f333456c-b5f0-4201-9ede-8c846b38556d",
                  fmt_u8_raw,
                  "Threshold for low-frequency filter");
-  ble_add_option(service, opt_thr_ml,
-                 "a0532c1f-09b7-49aa-9131-13153d0fad75",
-                 fmt_u8_raw,
-                 "Lower bound threshold for mid-frequency filter");
-  ble_add_option(service, opt_thr_mh,
-                 "5c04fb0e-a31e-41a3-9635-1e1597729ea0",
-                 fmt_u8_raw,
-                 "Upper bound threshold for mid-frequency filter");
   ble_add_option(service, opt_thr_high,
                  "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
                  fmt_u8_raw,
