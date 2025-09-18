@@ -343,22 +343,22 @@ void ble_add_filter_characteristics(BLEService* service)
   ble_add_rw_value(service, opt_level_low,
                    "26ebeecb-c65e-4769-8bce-932e6814580e",
                    fmt_float_u16,
-                   "Amplification level for low frequencies");
+                   "Low frequencies amplification level");
   ble_add_rw_value(service, opt_level_mid,
                    "b4d3b959-a0f3-4b6a-b0d9-9ca6991563a0",
                    fmt_float_u16,
-                   "Amplification level for mid frequencies");
+                   "Mid frequencies amplification level");
   ble_add_rw_value(service, opt_level_high,
                    "1d1750a8-9235-4f1b-890c-512f87135d31",
                    fmt_float_u16,
-                   "Amplification level for high frequencies");
+                   "High frequencies amplification level");
 
   ble_add_rw_value(service, opt_thr_low,
                    "f333456c-b5f0-4201-9ede-8c846b38556d",
                    fmt_u8_raw,
-                   "Threshold for low-frequency filter");
+                   "Low frequency filter threshold");
   ble_add_rw_value(service, opt_thr_high,
                    "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
                    fmt_u8_raw,
-                   "Threshold for high-frequency filter");
+                   "High frequency filter threshold");
 }
