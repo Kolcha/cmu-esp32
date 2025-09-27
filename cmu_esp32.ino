@@ -391,11 +391,6 @@ static void ble_server_init(const char* dev_name)
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks);
 
-  auto i_service = pServer->createService(BLEUUID(static_cast<uint16_t>(0x180A)));
-  auto dev_man_c = i_service->createCharacteristic(BLEUUID(static_cast<uint16_t>(0x2A29)), BLECharacteristic::PROPERTY_READ);
-  dev_man_c->setValue(String("Nick Korotysh"));
-  i_service->start();
-
   auto d_service = pServer->createService(BLEUUID(DEVICE_SERVICE_UUID), 32);
   ble_add_device_characteristics(d_service);
   d_service->start();
@@ -405,7 +400,6 @@ static void ble_server_init(const char* dev_name)
   f_service->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(BLEUUID(static_cast<uint16_t>(0x180A)));
   pAdvertising->addServiceUUID(DEVICE_SERVICE_UUID);
   pAdvertising->addServiceUUID(FILTER_SERVICE_UUID);
   pAdvertising->setScanResponse(false);
