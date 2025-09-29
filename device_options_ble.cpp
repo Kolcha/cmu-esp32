@@ -8,7 +8,6 @@ extern "C" {
 #include "filter.h"
 #include "spectrum.h"
 }
-#include <esp_heap_caps.h>
 
 #include <BLE2901.h>
 #include <BLE2904.h>
@@ -298,11 +297,6 @@ void load_values_from_config()
   opt_thr_high.load();
 }
 
-static uint32_t get_minimum_free_mem()
-{
-  return heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
-}
-
 void ble_add_device_characteristics(BLEService* service)
 {
   ble_add_rw_value(service, opt_device_name,
@@ -318,11 +312,6 @@ void ble_add_device_characteristics(BLEService* service)
                    "47f5321d-27af-4ec4-b44f-49b082cf0505",
                    fmt_float_u16,
                    "Gamma value");
-
-  ble_add_ro_value(service, get_minimum_free_mem,
-                   "32a34428-4456-4d62-a2f5-2fc7eaadeb97",
-                   fmt_u32_raw,
-                   "Total minimum free memory since boot");
 }
 
 template<typename R, typename T>
