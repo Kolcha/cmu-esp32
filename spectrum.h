@@ -35,16 +35,9 @@ void analyze_input(const struct analysis_cfg* cfg,
                    const int16_t* raw_input, float* spectrum);
 
 // convert magnitudes to amplitudes in decibels in-place
-// output is not normalized and may contain -infinity values
 // spectrum - input array of (freq,magnitude) pairs, n in total
 // n - spectrum elements (i.e. pairs) count, array size / 2
 void magnitudes_to_decibels(float* spectrum, size_t n);
-
-// convenient function for spectrum clamping
-// clamp amplitudes within [lo, hi] range
-// spectrum - input array of (freq,amplitude) pairs, n in total
-// n - spectrum elements (i.e. pairs) count, array size / 2
-void clamp_spectrum_range(float lo, float hi, float* spectrum, size_t n);
 
 // create spectrum "bars" representation
 // n - desired bars count
