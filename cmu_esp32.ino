@@ -15,12 +15,12 @@ extern "C" {
 }
 #include "device_options_ble.hpp"
 
+#include "esp_bt.h"
 #include "esp_bt_main.h"
-#include "esp_bt_device.h"
 #include "esp_a2dp_api.h"
-#include "esp_avrc_api.h"
 #include "esp_gap_bt_api.h"
 
+#include "freertos/FreeRTOS.h"
 #include "freertos/ringbuf.h"
 #include "freertos/task.h"
 
@@ -34,6 +34,11 @@ extern "C" {
 
 #define DEVICE_SERVICE_UUID     "8af2e1aa-6cfa-4cd8-a9f9-54243e04d9c7"
 #define FILTER_SERVICE_UUID     "fc8bd000-4814-4031-bff0-fbca1b99ee44"
+
+/* log tags */
+#define BT_AV_TAG           "BT_AV"
+/* Application layer causes delay value */
+#define APP_DELAY_VALUE                   50  // 5ms
 
 #define count_of(X)     (sizeof(X)/sizeof(X[0]))
 
@@ -304,11 +309,38 @@ static void a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t* param)
       Serial.println("ESP_A2D_AUDIO_CFG_EVT");
       handle_a2d_audio_cfg(param);
       break;
-    case ESP_A2D_MEDIA_CTRL_ACK_EVT:
-      Serial.println("ESP_A2D_MEDIA_CTRL_ACK_EVT");
-      break;
     case ESP_A2D_PROF_STATE_EVT:
       Serial.println("ESP_A2D_PROF_STATE_EVT");
+      break;
+    /* When protocol service capabilities configured, this event comes */
+    case ESP_A2D_SNK_PSC_CFG_EVT: {
+      ESP_LOGI(BT_AV_TAG, "protocol service capabilities configured: 0x%x ", param->a2d_psc_cfg_stat.psc_mask);
+      if (param->a2d_psc_cfg_stat.psc_mask & ESP_A2D_PSC_DELAY_RPT) {
+        ESP_LOGI(BT_AV_TAG, "Peer device support delay reporting");
+      } else {
+        ESP_LOGI(BT_AV_TAG, "Peer device unsupported delay reporting");
+      }
+      break;
+    }
+    /* when set delay value completed, this event comes */
+    case ESP_A2D_SNK_SET_DELAY_VALUE_EVT: {
+      if (ESP_A2D_SET_INVALID_PARAMS == param->a2d_set_delay_value_stat.set_state) {
+        ESP_LOGI(BT_AV_TAG, "Set delay report value: fail");
+      } else {
+        ESP_LOGI(BT_AV_TAG, "Set delay report value: success, delay_value: %u * 1/10 ms", param->a2d_set_delay_value_stat.delay_value);
+      }
+      break;
+    }
+    /* when get delay value completed, this event comes */
+    case ESP_A2D_SNK_GET_DELAY_VALUE_EVT: {
+      ESP_LOGI(BT_AV_TAG, "Get delay report value: delay_value: %u * 1/10 ms", param->a2d_get_delay_value_stat.delay_value);
+      /* Default delay value plus delay caused by application layer */
+      esp_a2d_sink_set_delay_value(param->a2d_get_delay_value_stat.delay_value + APP_DELAY_VALUE);
+      break;
+    }
+    /* others */
+    default:
+      ESP_LOGW(BT_AV_TAG, "%s unhandled event: %d", __func__, event);
       break;
   }
 }
@@ -317,11 +349,6 @@ static void bt_data_cb(const uint8_t* data, uint32_t len)
 {
   BaseType_t high_prio_task_woken = pdFALSE;
   xRingbufferSendFromISR(raw_audio_buffer, data, len, &high_prio_task_woken);
-}
-
-static void avrc_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t* param)
-{
-  // does nothing
 }
 // ----------------------------------------------------------
 
@@ -352,14 +379,12 @@ static void bt_audio_sink_init(const char* dev_name)
   esp_bt_gap_set_device_name(dev_name);
   esp_bt_gap_register_callback(bt_app_gap_cb);
 
-  esp_avrc_ct_init();
-  esp_avrc_ct_register_callback(avrc_cb);
-
-  esp_a2d_sink_init();
   esp_a2d_register_callback(a2d_cb);
+  esp_a2d_sink_init();
   esp_a2d_sink_register_data_callback(bt_data_cb);
 
   esp_a2d_sink_get_delay_value();
+  esp_bt_gap_get_device_name();
 
   esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 }
@@ -388,7 +413,7 @@ class MyServerCallbacks: public BLEServerCallbacks
 static void ble_server_init(const char* dev_name)
 {
   BLEDevice::init(dev_name);
-  BLEServer *pServer = BLEDevice::createServer();
+  BLEServer* pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks);
 
   auto d_service = pServer->createService(BLEUUID(DEVICE_SERVICE_UUID), 32);
@@ -399,7 +424,7 @@ static void ble_server_init(const char* dev_name)
   ble_add_filter_characteristics(f_service);
   f_service->start();
 
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(DEVICE_SERVICE_UUID);
   pAdvertising->addServiceUUID(FILTER_SERVICE_UUID);
   pAdvertising->setScanResponse(false);
