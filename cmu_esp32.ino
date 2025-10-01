@@ -228,34 +228,37 @@ static void bt_app_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t* pa
     /* when authentication completed, this event comes */
     case ESP_BT_GAP_AUTH_CMPL_EVT: {
       if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
-        Serial.printf("authentication success: %s\n", param->auth_cmpl.device_name);
+        ESP_LOGI(BT_AV_TAG, "authentication success: %s", param->auth_cmpl.device_name);
+        ESP_LOG_BUFFER_HEX(BT_AV_TAG, param->auth_cmpl.bda, ESP_BD_ADDR_LEN);
       } else {
-        Serial.printf("authentication failed, status: %d\n", param->auth_cmpl.stat);
+        ESP_LOGE(BT_AV_TAG, "authentication failed, status: %d", param->auth_cmpl.stat);
       }
+      ESP_LOGI(BT_AV_TAG, "link key type of current link is: %d", param->auth_cmpl.lk_type);
       break;
     }
 
     /* when Security Simple Pairing user confirmation requested, this event comes */
     case ESP_BT_GAP_CFM_REQ_EVT:
-      Serial.printf("ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %06" PRIu32 "\n", param->cfm_req.num_val);
+      ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %06" PRIu32, param->cfm_req.num_val);
       esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
       break;
     /* when Security Simple Pairing passkey notified, this event comes */
     case ESP_BT_GAP_KEY_NOTIF_EVT:
-      Serial.printf("ESP_BT_GAP_KEY_NOTIF_EVT passkey: %06" PRIu32 "\n", param->key_notif.passkey);
+      ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_KEY_NOTIF_EVT passkey: %06" PRIu32, param->key_notif.passkey);
       break;
     /* when Security Simple Pairing passkey requested, this event comes */
     case ESP_BT_GAP_KEY_REQ_EVT:
-      Serial.printf("ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!\n");
+      ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!");
       break;
 
     /* when GAP mode changed, this event comes */
     case ESP_BT_GAP_MODE_CHG_EVT:
-      Serial.printf("ESP_BT_GAP_MODE_CHG_EVT mode: %d\n", param->mode_chg.mode);
+      ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_MODE_CHG_EVT mode: %d, interval: %.2f ms",
+               param->mode_chg.mode, param->mode_chg.interval * 0.625);
       break;
     /* others */
     default: {
-      Serial.printf("event: %d\n", event);
+      ESP_LOGI(BT_AV_TAG, "event: %d", event);
       break;
     }
   }
@@ -279,39 +282,66 @@ static void handle_a2d_connection_state(const esp_a2d_cb_param_t* param)
 
 static void handle_a2d_audio_cfg(const esp_a2d_cb_param_t* param)
 {
+  const esp_a2d_mcc_t* p_mcc = &param->audio_cfg.mcc;
+  ESP_LOGI(BT_AV_TAG, "A2DP audio stream configuration, codec type: %d", p_mcc->type);
   /* for now only SBC stream is supported */
-  if (param->audio_cfg.mcc.type == ESP_A2D_MCT_SBC) {
-    uint32_t sample_rate = 16000;
-    uint8_t samp_freq = param->audio_cfg.mcc.cie.sbc_info.samp_freq;
-    if (samp_freq & ESP_A2D_SBC_CIE_SF_32K) {
+  if (p_mcc->type == ESP_A2D_MCT_SBC) {
+    int sample_rate = 16000;
+    int ch_count = 2;
+    if (p_mcc->cie.sbc_info.samp_freq & ESP_A2D_SBC_CIE_SF_32K) {
       sample_rate = 32000;
-    } else if (samp_freq & ESP_A2D_SBC_CIE_SF_44K) {
+    } else if (p_mcc->cie.sbc_info.samp_freq & ESP_A2D_SBC_CIE_SF_44K) {
       sample_rate = 44100;
-    } else if (samp_freq & ESP_A2D_SBC_CIE_SF_48K) {
+    } else if (p_mcc->cie.sbc_info.samp_freq & ESP_A2D_SBC_CIE_SF_48K) {
       sample_rate = 48000;
     }
-    Serial.printf("sample rate: %lu\n", sample_rate);
+
+    if (p_mcc->cie.sbc_info.ch_mode & ESP_A2D_SBC_CIE_CH_MODE_MONO) {
+      ch_count = 1;
+    }
+
+    ESP_LOGI(BT_AV_TAG, "Configure audio player: 0x%x-0x%x-0x%x-0x%x-0x%x-%d-%d",
+             p_mcc->cie.sbc_info.samp_freq,
+             p_mcc->cie.sbc_info.ch_mode,
+             p_mcc->cie.sbc_info.block_len,
+             p_mcc->cie.sbc_info.num_subbands,
+             p_mcc->cie.sbc_info.alloc_mthd,
+             p_mcc->cie.sbc_info.min_bitpool,
+             p_mcc->cie.sbc_info.max_bitpool);
+    ESP_LOGI(BT_AV_TAG, "Audio player configured, sample rate: %d", sample_rate);
+
     frequencies_data_init(sample_rate);
   }
 }
 
-static void a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t* param)
+static void bt_app_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t* param)
 {
+  ESP_LOGD(BT_AV_TAG, "%s event: %d", __func__, event);
+
   switch (event) {
+    /* when connection state changed, this event comes */
     case ESP_A2D_CONNECTION_STATE_EVT:
-      Serial.printf("ESP_A2D_CONNECTION_STATE_EVT: %d\n", param->conn_stat.state);
+      ESP_LOGI(BT_AV_TAG, "ESP_A2D_CONNECTION_STATE_EVT: %d", param->conn_stat.state);
       handle_a2d_connection_state(param);
       break;
+    /* when audio stream transmission state changed, this event comes */
     case ESP_A2D_AUDIO_STATE_EVT:
-      Serial.printf("ESP_A2D_AUDIO_STATE_EVT: %d\n", param->audio_stat.state);
+      ESP_LOGI(BT_AV_TAG, "ESP_A2D_AUDIO_STATE_EVT: %d", param->audio_stat.state);
       break;
+    /* when audio codec is configured, this event comes */
     case ESP_A2D_AUDIO_CFG_EVT:
-      Serial.println("ESP_A2D_AUDIO_CFG_EVT");
+      ESP_LOGI(BT_AV_TAG, "ESP_A2D_AUDIO_CFG_EVT");
       handle_a2d_audio_cfg(param);
       break;
-    case ESP_A2D_PROF_STATE_EVT:
-      Serial.println("ESP_A2D_PROF_STATE_EVT");
+    /* when a2dp init or deinit completed, this event comes */
+    case ESP_A2D_PROF_STATE_EVT: {
+      if (ESP_A2D_INIT_SUCCESS == param->a2d_prof_stat.init_state) {
+        ESP_LOGI(BT_AV_TAG, "A2DP PROF STATE: Init Complete");
+      } else {
+        ESP_LOGI(BT_AV_TAG, "A2DP PROF STATE: Deinit Complete");
+      }
       break;
+    }
     /* When protocol service capabilities configured, this event comes */
     case ESP_A2D_SNK_PSC_CFG_EVT: {
       ESP_LOGI(BT_AV_TAG, "protocol service capabilities configured: 0x%x ", param->a2d_psc_cfg_stat.psc_mask);
@@ -345,7 +375,7 @@ static void a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t* param)
   }
 }
 
-static void bt_data_cb(const uint8_t* data, uint32_t len)
+static void bt_app_a2d_data_cb(const uint8_t* data, uint32_t len)
 {
   BaseType_t high_prio_task_woken = pdFALSE;
   xRingbufferSendFromISR(raw_audio_buffer, data, len, &high_prio_task_woken);
@@ -379,9 +409,9 @@ static void bt_audio_sink_init(const char* dev_name)
   esp_bt_gap_set_device_name(dev_name);
   esp_bt_gap_register_callback(bt_app_gap_cb);
 
-  esp_a2d_register_callback(a2d_cb);
+  esp_a2d_register_callback(&bt_app_a2d_cb);
   esp_a2d_sink_init();
-  esp_a2d_sink_register_data_callback(bt_data_cb);
+  esp_a2d_sink_register_data_callback(bt_app_a2d_data_cb);
 
   esp_a2d_sink_get_delay_value();
   esp_bt_gap_get_device_name();
