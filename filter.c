@@ -5,7 +5,7 @@
 
 #include "spectrum.h"
 
-void spectrum_lmh_out(const float* spectrum, size_t n, float out[],
+void spectrum_lmh_out(const float* spectrum, size_t n, float out[3],
                       const struct filter_opt* opt)
 {
   const uint16_t bands[] = {
