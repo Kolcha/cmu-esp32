@@ -150,25 +150,25 @@ static bool read_bt_peer_addr(uint8_t* bt_addr)
 {
   size_t rbytes = 0;
   prefs.begin("device", true);
-  rbytes = prefs.getBytes("last_dev", bt_addr, 6);
+  rbytes = prefs.getBytes("last_dev", bt_addr, ESP_BD_ADDR_LEN);
   prefs.end();
-  return rbytes == 6;
+  return rbytes == ESP_BD_ADDR_LEN;
 }
 
 static bool save_bt_peer_addr(const uint8_t* bt_addr)
 {
   size_t wbytes = 0;
   prefs.begin("device", false);
-  wbytes = prefs.putBytes("last_dev", bt_addr, 6);
+  wbytes = prefs.putBytes("last_dev", bt_addr, ESP_BD_ADDR_LEN);
   prefs.end();
-  return wbytes == 6;
+  return wbytes == ESP_BD_ADDR_LEN;
 }
 
 static void maybe_save_bt_peer_addr(const uint8_t* bt_addr)
 {
-  uint8_t last_addr[6];
+  uint8_t last_addr[ESP_BD_ADDR_LEN];
   bool has_last_address = read_bt_peer_addr(last_addr);
-  bool last_is_the_same = has_last_address && memcmp(last_addr, bt_addr, 6) == 0;
+  bool last_is_the_same = has_last_address && memcmp(last_addr, bt_addr, ESP_BD_ADDR_LEN) == 0;
   if (!has_last_address || !last_is_the_same) {
     save_bt_peer_addr(bt_addr);
   }
@@ -421,7 +421,7 @@ static void bt_audio_sink_init(const char* dev_name)
 
 static void reconnect_to_last_device()
 {
-  uint8_t last_addr[6];
+  uint8_t last_addr[ESP_BD_ADDR_LEN];
   if (read_bt_peer_addr(last_addr)) {
     esp_a2d_sink_connect(last_addr);
   }
