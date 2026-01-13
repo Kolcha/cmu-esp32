@@ -105,9 +105,9 @@ Configure the frequency band separation and amplification:
 
 Based on 512-point FFT at typical sample rates:
 
-- **Low (Bass)**: ~0-180 Hz
-- **Mid**: ~180-1.5 kHz
-- **High (Treble)**: ~1.5-20 kHz
+- **Low (Bass)**: ~0-135 Hz
+- **Mid**: ~135-850 Hz
+- **High (Treble)**: ~850-20 kHz
 
 Actual frequencies depend on sample rate and threshold settings.
 
