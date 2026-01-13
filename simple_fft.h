@@ -1,8 +1,8 @@
-// SPDX-FileCopyrightText: None
-// SPDX-License-Identifier: Unlicense
+// SPDX-FileCopyrightText: 2024 Nick Korotysh <nick.korotysh@gmail.com>
+// SPDX-License-Identifier: Unlicense OR CC0-1.0
 
-#ifndef _SIMPLE_FFT_H_
-#define _SIMPLE_FFT_H_
+#ifndef SIMPLE_FFT_H
+#define SIMPLE_FFT_H
 
 // FFT configuration / service data struct
 // this struct was intentionally made a part of the interface
@@ -38,4 +38,4 @@ void fft_cplx(const simple_fft_cfg* cfg, float* data);
 // data is an array of real values, 2*N in total
 void fft_real(const simple_fft_cfg* cfg, float* data);
 
-#endif  // _SIMPLE_FFT_H_
+#endif  // SIMPLE_FFT_H

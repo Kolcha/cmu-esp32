@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: None
-// SPDX-License-Identifier: Unlicense
+// SPDX-FileCopyrightText: 2024 Nick Korotysh <nick.korotysh@gmail.com>
+// SPDX-License-Identifier: Unlicense OR CC0-1.0
 
 #include "simple_fft.h"
 
