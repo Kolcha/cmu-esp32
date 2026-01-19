@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: 2025 Nick Korotysh <nick.korotysh@gmail.com>
 // SPDX-License-Identifier: MIT
 
+#include <algorithm>
+#include <deque>
+#include <vector>
+
 #include <Preferences.h>
 
 #include <BLEDevice.h>
@@ -14,11 +18,14 @@ extern "C" {
 #include "spectrum.h"
 }
 #include "device_options_ble.hpp"
+#include "led_strip_encoder.h"
 
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_a2dp_api.h"
 #include "esp_gap_bt_api.h"
+
+#include "driver/rmt_tx.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/ringbuf.h"
@@ -31,6 +38,10 @@ extern "C" {
 
 #define RGB_PWM_FREQ        75000
 #define RGB_PWM_BITS        10
+
+#define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us
+#define RMT_LED_STRIP_GPIO_NUM      GPIO_NUM_15
+#define RMT_LED_STRIP_LEDS_COUNT    300
 
 #define DEVICE_SERVICE_UUID     "8af2e1aa-6cfa-4cd8-a9f9-54243e04d9c7"
 #define FILTER_SERVICE_UUID     "fc8bd000-4814-4031-bff0-fbca1b99ee44"
@@ -47,6 +58,7 @@ extern "C" {
 // ----------------------------------------------------------
 struct device_opt d_options = {
   .swap_r_b_channels = false,
+  .enable_rmt_history = false,
   .gamma_value = 2.8,
 };
 String device_name = "ESP_Speaker_K";
@@ -106,6 +118,18 @@ static RingbufHandle_t raw_audio_buffer;
 static TaskHandle_t led_blink_task;
 
 Preferences prefs;
+
+struct rgb_data_t {
+  uint8_t g;
+  uint8_t r;
+  uint8_t b;
+};
+
+std::deque<rgb_data_t> rmt_history;
+std::vector<rgb_data_t> rmt_pixels;
+
+static rmt_channel_handle_t led_chan = nullptr;
+static rmt_encoder_handle_t led_encoder = nullptr;
 
 // ----------------------------------------------------------
 //                   indicator LED blinking
@@ -201,6 +225,68 @@ static void pwm_rgb_set(float r, float g, float b)
   ledcWriteChannel(2, static_cast<uint32_t>(std::lround(b*max_value)));
 }
 
+// ----------------------------------------------------------
+//                        RMT RGB out
+// ----------------------------------------------------------
+static void rmt_rgb_init()
+{
+  rmt_history.resize(RMT_LED_STRIP_LEDS_COUNT);
+  rmt_pixels.resize(RMT_LED_STRIP_LEDS_COUNT);
+
+  rmt_tx_channel_config_t tx_chan_config = {
+    .gpio_num = RMT_LED_STRIP_GPIO_NUM,
+    .clk_src = RMT_CLK_SRC_DEFAULT, // select source clock
+    .resolution_hz = RMT_LED_STRIP_RESOLUTION_HZ,
+    .mem_block_symbols = 64, // increase the block size can make the LED less flickering
+    .trans_queue_depth = 2,  // set the number of transactions that can be pending in the background
+  };
+  ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &led_chan));
+
+  led_strip_encoder_config_t encoder_config = {
+    .resolution = RMT_LED_STRIP_RESOLUTION_HZ,
+  };
+  ESP_ERROR_CHECK(rmt_new_led_strip_encoder(&encoder_config, &led_encoder));
+
+  ESP_ERROR_CHECK(rmt_enable(led_chan));
+}
+
+static void rmt_rgb_write_pixels()
+{
+  const rmt_transmit_config_t tx_config = {
+    .loop_count = 0, // no transfer loop
+  };
+  const auto data = rmt_pixels.data();
+  const auto size = rmt_pixels.size() * sizeof(rgb_data_t);
+  ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, data, size, &tx_config));
+  ESP_ERROR_CHECK(rmt_tx_wait_all_done(led_chan, 12));
+}
+
+static void rmt_rgb_set(float r, float g, float b)
+{
+  rgb_data_t rgb;
+  rgb.r = static_cast<uint8_t>(std::lround(r*255));
+  rgb.g = static_cast<uint8_t>(std::lround(g*255));
+  rgb.b = static_cast<uint8_t>(std::lround(b*255));
+
+  if (d_options.enable_rmt_history) {
+    rmt_history.pop_back();
+    rmt_history.push_front(rgb);
+    std::copy(rmt_history.begin(), rmt_history.end(), rmt_pixels.begin());
+  } else {
+    std::fill(rmt_pixels.begin(), rmt_pixels.end(), rgb);
+  }
+
+  rmt_rgb_write_pixels();
+}
+
+static void rmt_rgb_clear()
+{
+  constexpr const rgb_data_t rgb{0, 0, 0};
+  std::fill(rmt_history.begin(), rmt_history.end(), rgb);
+  std::fill(rmt_pixels.begin(), rmt_pixels.end(), rgb);
+  rmt_rgb_write_pixels();
+}
+// ----------------------------------------------------------
 static void spectrum_rgb_out(const float* spectrum)
 {
   float bars[3];
@@ -216,6 +302,7 @@ static void spectrum_rgb_out(const float* spectrum)
     std::swap(bars[0], bars[2]);
 
   pwm_rgb_set(bars[0], bars[1], bars[2]);
+  rmt_rgb_set(bars[0], bars[1], bars[2]);
 }
 // ----------------------------------------------------------
 
@@ -271,11 +358,13 @@ static void handle_a2d_connection_state(const esp_a2d_cb_param_t* param)
       esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
       stop_led_blinking();
       pwm_rgb_set(0, 0, 0);
+      rmt_rgb_clear();
       break;
     case ESP_A2D_CONNECTION_STATE_CONNECTED:
       esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
       start_led_blinking();
       maybe_save_bt_peer_addr(param->conn_stat.remote_bda);
+      rmt_rgb_clear();
       break;
   }
 }
@@ -478,6 +567,7 @@ void setup()
   raw_audio_buffer = xRingbufferCreate(2*2*SAMPLES_COUNT*sizeof(int16_t), RINGBUF_TYPE_BYTEBUF);
 
   pwm_rgb_init();
+  rmt_rgb_init();
 
   pinMode(INDICATOR_LED_PIN, OUTPUT);
   digitalWrite(INDICATOR_LED_PIN, HIGH);

@@ -8,6 +8,7 @@
 
 struct device_opt {
   bool swap_r_b_channels;
+  bool enable_rmt_history;
   float gamma_value;
 };
 

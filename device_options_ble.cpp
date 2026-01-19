@@ -236,6 +236,7 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 
 static auto val_device_name = SimpleValue(device_name);
 static auto val_swap_channels = SimpleValue(d_options.swap_r_b_channels);
+static auto val_enable_history = SimpleValue(d_options.enable_rmt_history);
 static auto val_gamma_value = SimpleValue(d_options.gamma_value);
 
 static auto val_preamp = SimpleValue(acfg.preamp);
@@ -272,6 +273,7 @@ static auto val_thr_high = ThresholdHighValue();
 
 static auto opt_device_name = ConfigValue(val_device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(val_swap_channels, "device", "swap_r_b");
+static auto opt_enable_history = ConfigValue(val_enable_history, "device", "rmt_history_en");
 static auto opt_gamma_value = ConfigValue(val_gamma_value, "device", "gamma_value");
 
 static auto opt_preamp = ConfigValue(val_preamp, "filter", "preamp");
@@ -286,6 +288,7 @@ void load_values_from_config()
 {
   opt_device_name.load();
   opt_swap_channels.load();
+  opt_enable_history.load();
   opt_gamma_value.load();
 
   opt_preamp.load();
@@ -307,6 +310,10 @@ void ble_add_device_characteristics(BLEService* service)
                    "5a8b2bba-6319-46a6-b37e-520744f35bfe",
                    fmt_bool,
                    "Swap red and blue channels");
+  ble_add_rw_value(service, opt_enable_history,
+                   "b3da21ab-cdcf-47eb-b216-357b374d0a27",
+                   fmt_bool,
+                   "Enable color history");
 
   ble_add_rw_value(service, opt_gamma_value,
                    "47f5321d-27af-4ec4-b44f-49b082cf0505",
