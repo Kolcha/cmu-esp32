@@ -10,6 +10,7 @@ This ESP32-based device acts as a **Bluetooth speaker** (A2DP audio sink) that p
 - Analyzes audio in real-time using 512-point FFT with Hann windowing
 - Splits the audio spectrum into three frequency bands: Low (bass), Mid, and High (treble)
 - Drives RGB LED strips with PWM outputs that respond to each frequency band
+- Can drive "smart" RGB LED strips (with individually addressable LEDs)
 - Configurable via Bluetooth Low Energy (BLE) for fine-tuning the visualization
 
 Perfect for creating ambient lighting that responds to your music, podcasts, or any audio playback!
@@ -21,6 +22,7 @@ Perfect for creating ambient lighting that responds to your music, podcasts, or 
 - **Bluetooth Audio Receiver**: Standard A2DP sink supporting common sample rates (44.1kHz, 48kHz)
 - **Real-Time Spectrum Analysis**: 1024-sample FFT with configurable windowing
 - **Triple-Channel RGB Output**: Separate PWM channels for bass, mids, and treble
+- **Smart LED support**: Can control LEDs strips made of WS2812b or similar LEDs
 - **BLE Configuration**: Adjust settings wirelessly without reprogramming
 - **Automatic Reconnection**: Remembers last connected device
 - **Visual Indicators**: Built-in LED shows connection status
@@ -50,11 +52,15 @@ Each channel's intensity varies based on the amplitude of its respective frequen
 
 The device supports **three independent RGB LED strips** or channels:
 
-| Channel | Red Pin | Green Pin | Blue Pin | Purpose |
-|---------|---------|-----------|----------|---------|
-| 1       | GPIO 12 | GPIO 13   | GPIO 14  | Low frequencies (Bass) |
-| 2       | GPIO 25 | GPIO 26   | GPIO 27  | Mid frequencies |
-| 3       | GPIO 4  | GPIO 16   | GPIO 17  | High frequencies (Treble) |
+| Channel | 1       | 2       | 3       | Purpose |
+|---------|---------|---------|---------|---------|
+| Red     | GPIO 12 | GPIO 25 | GPIO 4  | Low frequencies (Bass) |
+| Green   | GPIO 13 | GPIO 26 | GPIO 16 | Mid frequencies |
+| Blue    | GPIO 14 | GPIO 27 | GPIO 17 | High frequencies (Treble) |
+
+#### RGB Output Pins (RMT)
+
+**GPIO 15**: Control data signal for LED strips with individually addressable LEDs
 
 #### Status Indicator
 
@@ -75,20 +81,18 @@ The device exposes two BLE services for wireless configuration. Use any BLE expl
 
 #### Device Service
 
-**UUID:** `8af2e1aa-6cfa-4cd8-a9f9-54243e04d9c7`
-
 - **Device name**: Bluetooth device name
 - **Swap R/B Channels**: Swap red and blue outputs
+- **Enable color history**: Show history instead of solid color
 - **Gamma Correction**: Adjust brightness curve (default: 2.8)
 
 #### Filter Service
-
-**UUID:** `fc8bd000-4814-4031-bff0-fbca1b99ee44`
 
 Configure the frequency band separation and amplification:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
+| `preamp` | Input preamplification | 1.0 |
 | `level_low` | Bass amplification | 0.8 |
 | `level_mid` | Mid-range amplification | 1.25 |
 | `level_high` | Treble amplification | 1.85 |
@@ -116,6 +120,18 @@ Actual frequencies depend on sample rate and threshold settings.
 - Frequency: 75 kHz
 - Resolution: 10-bit (0-1023 levels)
 
+### RMT Specifications
+
+- Channels layout: GRB
+- LEDs count: 300
+- T0H: 0.4 us
+- T0L: 0.85 us
+- T1H: 0.8 us
+- T1L: 0.45 us
+- Treset: 60 us
+
+Configured for WS2812b, but should be compatible with many other.
+
 ## License
 
 MIT License - See [LICENSE.txt](LICENSE.txt) for details.
@@ -127,3 +143,4 @@ Copyright © 2025 Nick Korotysh
 - FFT implementation: [custom fixed-point optimized for embedded](https://github.com/Kolcha/simple-fft)
 - BLE integration: [ESP32 Arduino BLE library](https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE)
 - A2DP support: [ESP-IDF Bluetooth stack](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/bluetooth/esp_a2dp.html)
+- Smart LEDs support: [ESP-IDF RMT stack](https://github.com/espressif/esp-idf/tree/master/examples/peripherals/rmt/led_strip)
