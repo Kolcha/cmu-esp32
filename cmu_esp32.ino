@@ -268,9 +268,10 @@ static void rmt_rgb_set(float r, float g, float b)
   rgb.g = static_cast<uint8_t>(std::lround(g*255));
   rgb.b = static_cast<uint8_t>(std::lround(b*255));
 
+  rmt_history.pop_back();
+  rmt_history.push_front(rgb);
+
   if (d_options.enable_rmt_history) {
-    rmt_history.pop_back();
-    rmt_history.push_front(rgb);
     std::copy(rmt_history.begin(), rmt_history.end(), rmt_pixels.begin());
   } else {
     std::fill(rmt_pixels.begin(), rmt_pixels.end(), rgb);
