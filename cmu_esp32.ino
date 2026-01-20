@@ -39,7 +39,7 @@ extern "C" {
 #define RGB_PWM_FREQ        75000
 #define RGB_PWM_BITS        10
 
-#define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us
+#define RMT_LED_STRIP_RESOLUTION_HZ 20000000 // 20MHz resolution, 1 tick = 0.05us
 #define RMT_LED_STRIP_GPIO_NUM      GPIO_NUM_15
 #define RMT_LED_STRIP_LEDS_COUNT    300
 
