@@ -27,7 +27,7 @@ static void prepare_fft_input(const struct analysis_cfg* cfg,
   for (; raw_input != raw_input_end; raw_input += 2) {
     int16_t ch1 = *(raw_input+0);
     int16_t ch2 = *(raw_input+1);
-    *input++ = (ch1 + ch2) / 2.f / 32768.f * cfg->preamp * *window++;
+    *input++ = (ch1 + ch2) / 2.f / 32768.f * *window++;
   }
 }
 

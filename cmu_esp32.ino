@@ -78,12 +78,11 @@ static float fft_io_buffer[SAMPLES_COUNT];      // 4k
 static float spectrum_frs[FFT_SIZE];            // 2k
 static float log_log_f_ks[FFT_SIZE];            // 2k
 
-struct analysis_cfg acfg = {
+static struct analysis_cfg const acfg = {
   .fft_cfg = &fft_cfg,
   .kwnd = fft_window_ks_1024,
   .freq = spectrum_frs,
   .kwnd_sum = FFT_WINDOW_KS_1024_SUM,
-  .preamp = 1.0,
 };
 
 struct filter_opt f_options = {

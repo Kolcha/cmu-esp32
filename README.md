@@ -92,7 +92,6 @@ Configure the frequency band separation and amplification:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `preamp` | Input preamplification | 1.0 |
 | `level_low` | Bass amplification | 0.8 |
 | `level_mid` | Mid-range amplification | 1.25 |
 | `level_high` | Treble amplification | 1.85 |

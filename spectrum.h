@@ -21,7 +21,6 @@ struct analysis_cfg {
   const float* kwnd;  // window function coefficients, e.g. Hann window
   const float* freq;  // spectrum frequencies, FFTs count, optional
   float kwnd_sum;     // window function coefficients sum
-  float preamp;       // input amplification, [0...2]
 };
 
 // analyze input and calculate the spectrum

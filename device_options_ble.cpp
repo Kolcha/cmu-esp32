@@ -17,7 +17,6 @@ extern "C" {
 extern String device_name;
 
 extern struct device_opt d_options;
-extern struct analysis_cfg acfg;
 extern struct filter_opt f_options;
 
 
@@ -239,7 +238,6 @@ static auto val_swap_channels = SimpleValue(d_options.swap_r_b_channels);
 static auto val_enable_history = SimpleValue(d_options.enable_rmt_history);
 static auto val_gamma_value = SimpleValue(d_options.gamma_value);
 
-static auto val_preamp = SimpleValue(acfg.preamp);
 static auto val_level_low = SimpleValue(f_options.level_low);
 static auto val_level_mid = SimpleValue(f_options.level_mid);
 static auto val_level_high = SimpleValue(f_options.level_high);
@@ -254,7 +252,6 @@ static auto opt_swap_channels = ConfigValue(val_swap_channels, "device", "swap_r
 static auto opt_enable_history = ConfigValue(val_enable_history, "device", "rmt_history_en");
 static auto opt_gamma_value = ConfigValue(val_gamma_value, "device", "gamma_value");
 
-static auto opt_preamp = ConfigValue(val_preamp, "filter", "preamp");
 static auto opt_level_low = ConfigValue(val_level_low, "filter", "level_low");
 static auto opt_level_mid = ConfigValue(val_level_mid, "filter", "level_mid");
 static auto opt_level_high = ConfigValue(val_level_high, "filter", "level_high");
@@ -271,7 +268,6 @@ void load_values_from_config()
   opt_enable_history.load();
   opt_gamma_value.load();
 
-  opt_preamp.load();
   opt_level_low.load();
   opt_level_mid.load();
   opt_level_high.load();
@@ -313,10 +309,6 @@ void ble_bulk_add_range(BLEService* service, R&& uuids, T vmin, T vmax)
 
 void ble_add_filter_characteristics(BLEService* service)
 {
-  ble_add_rw_value(service, opt_preamp,
-                   "ef599dd1-35ad-4a35-a367-e4401693f02a",
-                   fmt_float_u16,
-                   "Input preamplifier gain");
   ble_add_rw_value(service, opt_level_low,
                    "26ebeecb-c65e-4769-8bce-932e6814580e",
                    fmt_float_u16,
