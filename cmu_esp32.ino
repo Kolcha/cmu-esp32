@@ -558,11 +558,6 @@ static void ble_server_init(const char* dev_name)
 // ----------------------------------------------------------
 void setup()
 {
-  Serial.begin(115200);
-  while (!Serial) {}
-  delay(500);
-  Serial.println("serial ready!");
-
   // use double buffering: 2 buffers x 2 16bit channels
   raw_audio_buffer = xRingbufferCreate(2*2*SAMPLES_COUNT*sizeof(int16_t), RINGBUF_TYPE_BYTEBUF);
 
