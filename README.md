@@ -123,13 +123,13 @@ Actual frequencies depend on sample rate and threshold settings.
 
 - Channels layout: GRB
 - LEDs count: 300
-- T0H: 0.4 us
-- T0L: 0.85 us
-- T1H: 0.8 us
-- T1L: 0.45 us
-- Treset: 60 us
+- T0H: 0.3 us
+- T0L: 0.9 us
+- T1H: 0.9 us
+- T1L: 0.35 us
+- Treset: 300 us
 
-Configured for WS2812b, but should be compatible with many other.
+Initially configured for WS2812b then adjusted to be compatible with WS2815, should be compatible with many other.
 
 ## License
 
