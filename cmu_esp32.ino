@@ -236,7 +236,7 @@ static void rmt_rgb_init()
     .gpio_num = RMT_LED_STRIP_GPIO_NUM,
     .clk_src = RMT_CLK_SRC_DEFAULT, // select source clock
     .resolution_hz = RMT_LED_STRIP_RESOLUTION_HZ,
-    .mem_block_symbols = 64, // increase the block size can make the LED less flickering
+    .mem_block_symbols = SOC_RMT_MEM_WORDS_PER_CHANNEL,
     .trans_queue_depth = 2,  // set the number of transactions that can be pending in the background
   };
   ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &led_chan));
