@@ -369,6 +369,16 @@ static void handle_a2d_connection_state(const esp_a2d_cb_param_t* param)
   }
 }
 
+static void handle_a2d_audio_state(const esp_a2d_cb_param_t* param)
+{
+  switch (param->audio_stat.state) {
+    case ESP_A2D_AUDIO_STATE_SUSPEND:
+      pwm_rgb_set(0, 0, 0);
+      rmt_rgb_clear();
+      break;
+  }
+}
+
 static void handle_a2d_audio_cfg(const esp_a2d_cb_param_t* param)
 {
   const esp_a2d_mcc_t* p_mcc = &param->audio_cfg.mcc;
@@ -416,6 +426,7 @@ static void bt_app_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t* param)
     /* when audio stream transmission state changed, this event comes */
     case ESP_A2D_AUDIO_STATE_EVT:
       ESP_LOGI(BT_AV_TAG, "ESP_A2D_AUDIO_STATE_EVT: %d", param->audio_stat.state);
+      handle_a2d_audio_state(param);
       break;
     /* when audio codec is configured, this event comes */
     case ESP_A2D_AUDIO_CFG_EVT:
