@@ -531,11 +531,11 @@ class MyServerCallbacks: public BLEServerCallbacks
 {
   void onConnect(BLEServer* pServer)
   {
+    BLEDevice::startAdvertising();
   }
 
   void onDisconnect(BLEServer* pServer)
   {
-    // pServer->startAdvertising();
     BLEDevice::startAdvertising();
   }
 };
@@ -557,9 +557,9 @@ static void ble_server_init(const char* dev_name)
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(DEVICE_SERVICE_UUID);
   pAdvertising->addServiceUUID(FILTER_SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
-
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06);
+  pAdvertising->setMaxPreferred(0x12);
   BLEDevice::startAdvertising();
 }
 // ----------------------------------------------------------
