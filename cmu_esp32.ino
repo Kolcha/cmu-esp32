@@ -257,7 +257,6 @@ static void rmt_rgb_write_pixels()
   const auto data = rmt_pixels.data();
   const auto size = rmt_pixels.size() * sizeof(rgb_data_t);
   ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, data, size, &tx_config));
-  ESP_ERROR_CHECK(rmt_tx_wait_all_done(led_chan, 12));
 }
 
 static void rmt_rgb_set(float r, float g, float b)
