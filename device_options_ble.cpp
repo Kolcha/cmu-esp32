@@ -21,6 +21,7 @@ extern struct device_opt d_options;
 extern struct filter_opt f_options;
 
 extern ChannelSwitcher rmt_rgb_ch_swither;
+extern struct rmt_cfg rmt_options;
 
 template<typename T>
 struct ble_format_for_type;
@@ -84,6 +85,16 @@ constexpr Float float_from_int(Int x, int8_t e) noexcept
   return x * pow10_int<Float>(e);
 }
 
+constexpr uint8_t float_to_u8(float x) noexcept
+{
+  return float_to_int<float, uint8_t>(x, -2);
+}
+
+constexpr float float_from_u8(uint8_t x) noexcept
+{
+  return float_from_int<float, uint8_t>(x, -2);
+}
+
 constexpr uint16_t float_to_u16(float x) noexcept
 {
   return float_to_int<float, uint16_t>(x, -4);
@@ -104,6 +115,18 @@ template<>
 uint8_t default_config_decode<uint8_t>(Preferences& prefs, const char* key, const uint8_t& def)
 {
   return prefs.getUChar(key, def);
+}
+
+template<>
+void default_config_encode<uint16_t>(Preferences& prefs, const char* key, const uint16_t& val)
+{
+  prefs.putUShort(key, val);
+}
+
+template<>
+uint16_t default_config_decode<uint16_t>(Preferences& prefs, const char* key, const uint16_t& def)
+{
+  return prefs.getUShort(key, def);
 }
 
 template<>
@@ -130,6 +153,16 @@ bool default_config_decode<bool>(Preferences& prefs, const char* key, const bool
   return prefs.getBool(key, def);
 }
 
+
+void config_encode_float_u8(Preferences& prefs, const char* key, const float& val)
+{
+  prefs.putUChar(key, float_to_u8(val));
+}
+
+float config_decode_float_u8(Preferences& prefs, const char* key, const float& def)
+{
+  return float_from_u8(prefs.getUChar(key, float_to_u8(def)));
+}
 
 void config_encode_float_u16(Preferences& prefs, const char* key, const float& val)
 {
@@ -219,6 +252,11 @@ void fmt_rgb_layout_from_ble(BLECharacteristic* c, uint8_t& val)
 }
 
 
+constexpr ConfigEncoder<float> enc_float_u8 = {
+  .write = &config_encode_float_u8,
+  .read  = &config_decode_float_u8,
+};
+
 constexpr ConfigEncoder<float> enc_float_u16 = {
   .write = &config_encode_float_u16,
   .read  = &config_decode_float_u16,
@@ -229,6 +267,7 @@ static const RawValueFormat<uint16_t> fmt_u16_raw;
 static const RawValueFormat<uint32_t> fmt_u32_raw;
 static const RawValueFormat<bool> fmt_bool;
 
+static const FloatValueFormat<float, uint8_t, -2> fmt_float_u8;
 static const FloatValueFormat<float, uint16_t, -4> fmt_float_u16;
 
 static const ValueFormat<String> fmt_string = {
@@ -292,6 +331,12 @@ static auto val_thr_mh = SimpleValue(f_options.thr_mh);
 static auto val_thr_high = SimpleValue(f_options.thr_high);
 
 static auto val_rmt_ch_layout = ChannelsLayoutValue(rmt_rgb_ch_swither);
+static auto val_rmt_leds_count = SimpleValue(rmt_options.leds_count);
+static auto val_rmt_treset = SimpleValue(rmt_options.Treset);
+static auto val_rmt_t0h = SimpleValue(rmt_options.T0H);
+static auto val_rmt_t0l = SimpleValue(rmt_options.T0L);
+static auto val_rmt_t1h = SimpleValue(rmt_options.T1H);
+static auto val_rmt_t1l = SimpleValue(rmt_options.T1L);
 
 static auto opt_device_name = ConfigValue(val_device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(val_swap_channels, "device", "swap_r_b");
@@ -308,6 +353,12 @@ static auto opt_thr_mh = ConfigValue(val_thr_mh, "filter", "thr_mh");
 static auto opt_thr_high = ConfigValue(val_thr_high, "filter", "thr_high");
 
 static auto opt_rmt_ch_layout = ConfigValue(val_rmt_ch_layout, "rmt", "ch_layout");
+static auto opt_rmt_leds_count = ConfigValue(val_rmt_leds_count, "rmt", "leds_count");
+static auto opt_rmt_treset = ConfigValue(val_rmt_treset, "rmt", "Treset");
+static auto opt_rmt_t0h = ConfigValue(val_rmt_t0h, "rmt", "T0H", enc_float_u8);
+static auto opt_rmt_t0l = ConfigValue(val_rmt_t0l, "rmt", "T0L", enc_float_u8);
+static auto opt_rmt_t1h = ConfigValue(val_rmt_t1h, "rmt", "T1H", enc_float_u8);
+static auto opt_rmt_t1l = ConfigValue(val_rmt_t1l, "rmt", "T1L", enc_float_u8);
 
 void load_values_from_config()
 {
@@ -342,10 +393,6 @@ void ble_add_device_characteristics(BLEService* service)
                    "b3da21ab-cdcf-47eb-b216-357b374d0a27",
                    fmt_bool,
                    "Enable color history");
-  ble_add_rw_value(service, opt_rmt_ch_layout,
-                   "ccb17409-4414-4b42-9257-59631ad6c30a",
-                   fmt_rgb_layout,
-                   "Channels layout (RMT only)");
 
   ble_add_rw_value(service, opt_gamma_value,
                    "47f5321d-27af-4ec4-b44f-49b082cf0505",
@@ -392,4 +439,36 @@ void ble_add_filter_characteristics(BLEService* service)
                    "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
                    fmt_u8_raw,
                    "High frequency filter threshold");
+}
+
+void ble_add_rmtcfg_characteristics(BLEService* service)
+{
+  ble_add_rw_value(service, opt_rmt_ch_layout,
+                   "ccb17409-4414-4b42-9257-59631ad6c30a",
+                   fmt_rgb_layout,
+                   "Channels layout");
+  ble_add_rw_value(service, opt_rmt_leds_count,
+                   "81ddbfb5-53c2-47d4-9f65-4fc6ec0ea870",
+                   fmt_u16_raw,
+                   "(*) LEDs count");
+  ble_add_rw_value(service, opt_rmt_treset,
+                   "ed3dcafd-fb4f-4e1f-bd49-0f52ab1debf0",
+                   fmt_u16_raw,
+                   "(*) Treset, us");
+  ble_add_rw_value(service, opt_rmt_t0h,
+                   "0a1b14b4-2128-4662-bf98-77d59b2a6c05",
+                   fmt_float_u8,
+                   "(*) T0H, us");
+  ble_add_rw_value(service, opt_rmt_t0l,
+                   "952c5e4a-f828-49d6-9b5d-741cced228d0",
+                   fmt_float_u8,
+                   "(*) T0L, us");
+  ble_add_rw_value(service, opt_rmt_t1h,
+                   "18647cf2-a109-4368-9284-00fd6188ee01",
+                   fmt_float_u8,
+                   "(*) T1H, us");
+  ble_add_rw_value(service, opt_rmt_t1l,
+                   "3c1753db-8ded-4827-9f20-32c7b1f016f1",
+                   fmt_float_u8,
+                   "(*) T1L, us");
 }

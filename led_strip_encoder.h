@@ -17,6 +17,11 @@ extern "C" {
  */
 typedef struct {
     uint32_t resolution; /*!< Encoder resolution, in Hz */
+    float T0H;           /*!< T0H, in us */
+    float T0L;           /*!< T0L, in us */
+    float T1H;           /*!< T1H, in us */
+    float T1L;           /*!< T1L, in us */
+    uint16_t Treset;     /*!< Treset, us */
 } led_strip_encoder_config_t;
 
 /**

@@ -42,10 +42,10 @@ extern "C" {
 
 #define RMT_LED_STRIP_RESOLUTION_HZ 20000000 // 20MHz resolution, 1 tick = 0.05us
 #define RMT_LED_STRIP_GPIO_NUM      GPIO_NUM_15
-#define RMT_LED_STRIP_LEDS_COUNT    300
 
 #define DEVICE_SERVICE_UUID     "8af2e1aa-6cfa-4cd8-a9f9-54243e04d9c7"
 #define FILTER_SERVICE_UUID     "fc8bd000-4814-4031-bff0-fbca1b99ee44"
+#define RMTCFG_SERVICE_UUID     "a45cde56-5c15-4fae-82cb-a3e1aece4f8b"
 
 /* log tags */
 #define BT_AV_TAG           "BT_AV"
@@ -63,6 +63,15 @@ struct device_opt d_options = {
   .gamma_value = 2.8,
 };
 String device_name = "ESP_Speaker_K";
+
+struct rmt_cfg rmt_options = {
+  .leds_count = 300,
+  .Treset = 300,
+  .T0H = 0.30,
+  .T0L = 0.90,
+  .T1H = 0.90,
+  .T1L = 0.35,
+};
 
 // ----------------------------------------------------------
 //           FFT & spectrum analysis configuration
@@ -226,8 +235,8 @@ static void pwm_rgb_set(float r, float g, float b)
 // ----------------------------------------------------------
 static void rmt_rgb_init()
 {
-  rmt_history.resize(RMT_LED_STRIP_LEDS_COUNT);
-  rmt_pixels.resize(RMT_LED_STRIP_LEDS_COUNT);
+  rmt_history.resize(rmt_options.leds_count);
+  rmt_pixels.resize(rmt_options.leds_count);
 
   rmt_tx_channel_config_t tx_chan_config = {
     .gpio_num = RMT_LED_STRIP_GPIO_NUM,
@@ -240,6 +249,11 @@ static void rmt_rgb_init()
 
   led_strip_encoder_config_t encoder_config = {
     .resolution = RMT_LED_STRIP_RESOLUTION_HZ,
+    .T0H = rmt_options.T0H,
+    .T0L = rmt_options.T0L,
+    .T1H = rmt_options.T1H,
+    .T1L = rmt_options.T1L,
+    .Treset = rmt_options.Treset,
   };
   ESP_ERROR_CHECK(rmt_new_led_strip_encoder(&encoder_config, &led_encoder));
 
@@ -550,9 +564,14 @@ static void ble_server_init(const char* dev_name)
   ble_add_filter_characteristics(f_service);
   f_service->start();
 
+  auto rmt_service = pServer->createService(BLEUUID(RMTCFG_SERVICE_UUID), 64);
+  ble_add_rmtcfg_characteristics(rmt_service);
+  rmt_service->start();
+
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(DEVICE_SERVICE_UUID);
   pAdvertising->addServiceUUID(FILTER_SERVICE_UUID);
+  pAdvertising->addServiceUUID(RMTCFG_SERVICE_UUID);
   pAdvertising->setScanResponse(true);
   pAdvertising->setMinPreferred(0x06);
   pAdvertising->setMaxPreferred(0x12);
