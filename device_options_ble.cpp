@@ -8,6 +8,7 @@ extern "C" {
 #include "filter.h"
 #include "spectrum.h"
 }
+#include "rgb_channel_switcher.hpp"
 
 #include <BLE2901.h>
 #include <BLE2904.h>
@@ -19,6 +20,7 @@ extern String device_name;
 extern struct device_opt d_options;
 extern struct filter_opt f_options;
 
+extern ChannelSwitcher rmt_rgb_ch_swither;
 
 template<typename T>
 struct ble_format_for_type;
@@ -201,6 +203,22 @@ void fmt_string_from_ble(BLECharacteristic* c, String& val)
   val = c->getValue();
 }
 
+void fmt_rgb_layout_to_ble(const uint8_t& val, BLECharacteristic* c)
+{
+  char str[4];
+  rgb_layout_to_str(str, sizeof(str), static_cast<rgb_layout_t>(val));
+  c->setValue(reinterpret_cast<uint8_t*>(&str[0]), sizeof(str));
+}
+
+void fmt_rgb_layout_from_ble(BLECharacteristic* c, uint8_t& val)
+{
+  auto str = c->getValue();
+  rgb_layout_t l = LAYOUT_GRB;
+  if (!str_to_rgb_layout(str.c_str(), str.length(), l)) return;
+  val = static_cast<uint8_t>(l);
+}
+
+
 constexpr ConfigEncoder<float> enc_float_u16 = {
   .write = &config_encode_float_u16,
   .read  = &config_decode_float_u16,
@@ -220,6 +238,13 @@ static const ValueFormat<String> fmt_string = {
   .from_ble = &fmt_string_from_ble,
 };
 
+static const ValueFormat<uint8_t> fmt_rgb_layout = {
+  .format = BLE2904::FORMAT_UTF8,
+  .exponent = 0,
+  .to_ble = &fmt_rgb_layout_to_ble,
+  .from_ble = &fmt_rgb_layout_from_ble,
+};
+
 
 void ble_characteristic_add_format(BLECharacteristic* c, uint8_t fmt, int8_t exp)
 {
@@ -237,6 +262,21 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
 }
 
 
+class ChannelsLayoutValue final : public Value<uint8_t>
+{
+public:
+  explicit ChannelsLayoutValue(ChannelSwitcher& sw) noexcept
+    : _sw(sw)
+  {}
+
+  uint8_t get() const override { return static_cast<uint8_t>(_sw.layout()); }
+  void set(uint8_t v) override { _sw.setLayout(static_cast<rgb_layout_t>(v)); }
+
+private:
+  ChannelSwitcher& _sw;
+};
+
+
 static auto val_device_name = SimpleValue(device_name);
 static auto val_swap_channels = SimpleValue(d_options.swap_r_b_channels);
 static auto val_enable_history = SimpleValue(d_options.enable_rmt_history);
@@ -251,6 +291,8 @@ static auto val_thr_ml = SimpleValue(f_options.thr_ml);
 static auto val_thr_mh = SimpleValue(f_options.thr_mh);
 static auto val_thr_high = SimpleValue(f_options.thr_high);
 
+static auto val_rmt_ch_layout = ChannelsLayoutValue(rmt_rgb_ch_swither);
+
 static auto opt_device_name = ConfigValue(val_device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(val_swap_channels, "device", "swap_r_b");
 static auto opt_enable_history = ConfigValue(val_enable_history, "device", "rmt_history_en");
@@ -264,6 +306,8 @@ static auto opt_thr_low = ConfigValue(val_thr_low, "filter", "thr_low");
 static auto opt_thr_ml = ConfigValue(val_thr_ml, "filter", "thr_ml");
 static auto opt_thr_mh = ConfigValue(val_thr_mh, "filter", "thr_mh");
 static auto opt_thr_high = ConfigValue(val_thr_high, "filter", "thr_high");
+
+static auto opt_rmt_ch_layout = ConfigValue(val_rmt_ch_layout, "rmt", "ch_layout");
 
 void load_values_from_config()
 {
@@ -280,6 +324,8 @@ void load_values_from_config()
   opt_thr_ml.load();
   opt_thr_mh.load();
   opt_thr_high.load();
+
+  opt_rmt_ch_layout.load();
 }
 
 void ble_add_device_characteristics(BLEService* service)
@@ -296,6 +342,10 @@ void ble_add_device_characteristics(BLEService* service)
                    "b3da21ab-cdcf-47eb-b216-357b374d0a27",
                    fmt_bool,
                    "Enable color history");
+  ble_add_rw_value(service, opt_rmt_ch_layout,
+                   "ccb17409-4414-4b42-9257-59631ad6c30a",
+                   fmt_rgb_layout,
+                   "Channels layout (RMT only)");
 
   ble_add_rw_value(service, opt_gamma_value,
                    "47f5321d-27af-4ec4-b44f-49b082cf0505",

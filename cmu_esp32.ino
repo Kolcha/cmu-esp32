@@ -19,6 +19,7 @@ extern "C" {
 }
 #include "device_options_ble.hpp"
 #include "led_strip_encoder.h"
+#include "rgb_channel_switcher.hpp"
 
 #include "esp_bt.h"
 #include "esp_bt_main.h"
@@ -118,11 +119,7 @@ static TaskHandle_t led_blink_task;
 
 Preferences prefs;
 
-struct rgb_data_t {
-  uint8_t g;
-  uint8_t r;
-  uint8_t b;
-};
+ChannelSwitcher rmt_rgb_ch_swither;
 
 std::deque<rgb_data_t> rmt_history;
 std::vector<rgb_data_t> rmt_pixels;
@@ -262,9 +259,9 @@ static void rmt_rgb_write_pixels()
 static void rmt_rgb_set(float r, float g, float b)
 {
   rgb_data_t rgb;
-  rgb.r = static_cast<uint8_t>(std::lround(r*255));
-  rgb.g = static_cast<uint8_t>(std::lround(g*255));
-  rgb.b = static_cast<uint8_t>(std::lround(b*255));
+  rmt_rgb_ch_swither.fillR(rgb, static_cast<uint8_t>(std::lround(r*255)));
+  rmt_rgb_ch_swither.fillG(rgb, static_cast<uint8_t>(std::lround(g*255)));
+  rmt_rgb_ch_swither.fillB(rgb, static_cast<uint8_t>(std::lround(b*255)));
 
   rmt_history.pop_back();
   rmt_history.push_front(rgb);
