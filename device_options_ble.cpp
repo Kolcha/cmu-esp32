@@ -93,51 +93,50 @@ constexpr float float_from_u16(uint16_t x) noexcept
 }
 
 template<>
-void ConfigValue<uint8_t>::write(Preferences& prefs, const uint8_t& val)
+void default_config_encode<uint8_t>(Preferences& prefs, const char* key, const uint8_t& val)
 {
-  prefs.putUChar(_key, val);
+  prefs.putUChar(key, val);
 }
 
 template<>
-uint8_t ConfigValue<uint8_t>::read(Preferences& prefs, const uint8_t& def)
+uint8_t default_config_decode<uint8_t>(Preferences& prefs, const char* key, const uint8_t& def)
 {
-  return prefs.getUChar(_key, def);
+  return prefs.getUChar(key, def);
 }
 
 template<>
-void ConfigValue<float>::write(Preferences& prefs, const float& val)
+void default_config_encode<String>(Preferences& prefs, const char* key, const String& val)
 {
-  prefs.putUShort(_key, float_to_u16(val));
+  prefs.putString(key, val);
 }
 
 template<>
-float ConfigValue<float>::read(Preferences& prefs, const float& def)
+String default_config_decode<String>(Preferences& prefs, const char* key, const String& def)
 {
-  return float_from_u16(prefs.getUShort(_key, float_to_u16(def)));
+  return prefs.getString(key, def);
 }
 
 template<>
-void ConfigValue<String>::write(Preferences& prefs, const String& val)
+void default_config_encode<bool>(Preferences& prefs, const char* key, const bool& val)
 {
-  prefs.putString(_key, val);
+  prefs.putBool(key, val);
 }
 
 template<>
-String ConfigValue<String>::read(Preferences& prefs, const String& def)
+bool default_config_decode<bool>(Preferences& prefs, const char* key, const bool& def)
 {
-  return prefs.getString(_key, def);
+  return prefs.getBool(key, def);
 }
 
-template<>
-void ConfigValue<bool>::write(Preferences& prefs, const bool& val)
+
+void config_encode_float_u16(Preferences& prefs, const char* key, const float& val)
 {
-  prefs.putBool(_key, val);
+  prefs.putUShort(key, float_to_u16(val));
 }
 
-template<>
-bool ConfigValue<bool>::read(Preferences& prefs, const bool& def)
+float config_decode_float_u16(Preferences& prefs, const char* key, const float& def)
 {
-  return prefs.getBool(_key, def);
+  return float_from_u16(prefs.getUShort(key, float_to_u16(def)));
 }
 
 
@@ -202,6 +201,11 @@ void fmt_string_from_ble(BLECharacteristic* c, String& val)
   val = c->getValue();
 }
 
+constexpr ConfigEncoder<float> enc_float_u16 = {
+  .write = &config_encode_float_u16,
+  .read  = &config_decode_float_u16,
+};
+
 static const RawValueFormat<uint8_t> fmt_u8_raw;
 static const RawValueFormat<uint16_t> fmt_u16_raw;
 static const RawValueFormat<uint32_t> fmt_u32_raw;
@@ -250,11 +254,11 @@ static auto val_thr_high = SimpleValue(f_options.thr_high);
 static auto opt_device_name = ConfigValue(val_device_name, "device", "dev_name");
 static auto opt_swap_channels = ConfigValue(val_swap_channels, "device", "swap_r_b");
 static auto opt_enable_history = ConfigValue(val_enable_history, "device", "rmt_history_en");
-static auto opt_gamma_value = ConfigValue(val_gamma_value, "device", "gamma_value");
+static auto opt_gamma_value = ConfigValue(val_gamma_value, "device", "gamma_value", enc_float_u16);
 
-static auto opt_level_low = ConfigValue(val_level_low, "filter", "level_low");
-static auto opt_level_mid = ConfigValue(val_level_mid, "filter", "level_mid");
-static auto opt_level_high = ConfigValue(val_level_high, "filter", "level_high");
+static auto opt_level_low = ConfigValue(val_level_low, "filter", "level_low", enc_float_u16);
+static auto opt_level_mid = ConfigValue(val_level_mid, "filter", "level_mid", enc_float_u16);
+static auto opt_level_high = ConfigValue(val_level_high, "filter", "level_high", enc_float_u16);
 
 static auto opt_thr_low = ConfigValue(val_thr_low, "filter", "thr_low");
 static auto opt_thr_ml = ConfigValue(val_thr_ml, "filter", "thr_ml");

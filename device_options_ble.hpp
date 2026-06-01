@@ -59,14 +59,34 @@ private:
 
 
 template<typename T>
+struct ConfigEncoder {
+  void(*write)(Preferences& prefs, const char* key, const T& val);
+  T(*read)(Preferences& prefs, const char* key, const T& def);
+};
+
+template<typename T>
+void default_config_encode(Preferences& prefs, const char* key, const T& val);
+
+template<typename T>
+T default_config_decode(Preferences& prefs, const char* key, const T& def);
+
+template<typename T>
+constexpr ConfigEncoder<T> default_encoder = {
+  .write = &default_config_encode<T>,
+  .read  = &default_config_decode<T>,
+};
+
+template<typename T>
 class ConfigValue : public ValueDecorator<T>
 {
   using Parent = ValueDecorator<T>;
 
 public:
-  ConfigValue(Value<T>& val, const char* sec, const char* key) noexcept
+  ConfigValue(Value<T>& val, const char* sec, const char* key,
+              ConfigEncoder<T> enc = default_encoder<T>) noexcept
     : ValueDecorator<T>(val)
     , _sec(sec), _key(key)
+    , _cenc(std::move(enc))
   {}
 
   void set(T v) override
@@ -79,7 +99,7 @@ public:
   {
     Preferences prefs;
     prefs.begin(_sec, false);
-    write(prefs, Parent::get());
+    _cenc.write(prefs, _key, Parent::get());
     prefs.end();
   }
 
@@ -87,17 +107,14 @@ public:
   {
     Preferences prefs;
     prefs.begin(_sec, true);
-    Parent::set(read(prefs, Parent::get()));
+    Parent::set(_cenc.read(prefs, _key, Parent::get()));
     prefs.end();
   }
-
-protected:
-  void write(Preferences& prefs, const T& val);
-  T read(Preferences& prefs, const T& def);
 
 private:
   const char* const _sec;
   const char* const _key;
+  ConfigEncoder<T> _cenc;
 };
 
 
