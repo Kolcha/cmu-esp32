@@ -18,7 +18,7 @@ void fft_init(simple_fft_cfg* cfg, float* tw, unsigned int N)
   }
   cfg->tw = tw;
 
-  // special last item that used by real FFT
+  // special item that used by real FFT
   const float half_phi_inc = -pi / N;
   cfg->tw_mul_re = cosf(half_phi_inc);
   cfg->tw_mul_im = sinf(half_phi_inc);
