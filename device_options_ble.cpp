@@ -384,7 +384,7 @@ void ble_add_device_characteristics(BLEService* service)
   ble_add_rw_value(service, opt_device_name,
                    "101588e6-7fb1-4992-963b-b2ef597fa49d",
                    fmt_string,
-                   "Device name");
+                   "(*) Device name");
   ble_add_rw_value(service, opt_swap_channels,
                    "5a8b2bba-6319-46a6-b37e-520744f35bfe",
                    fmt_bool,
