@@ -29,7 +29,8 @@ bool rgb_layout_to_str(char* str, size_t sz, rgb_layout_t l);
 bool str_to_rgb_layout(const char* str, size_t sz, rgb_layout_t& l);
 
 
-class ChannelSwitcher {
+class ChannelSwitcher
+{
 public:
   explicit ChannelSwitcher(rgb_layout_t l = LAYOUT_GRB) noexcept
   {

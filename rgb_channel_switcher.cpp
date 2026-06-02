@@ -6,17 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-void ChannelSwitcher::setLayout(rgb_layout_t l) noexcept
-{
-  _layout = l;
-  auto lv = static_cast<uint8_t>(l);
-  _ri = lv / 100;
-  lv -= _ri * 100;
-  _gi = lv / 10;
-  lv -= _gi * 10;
-  _bi = lv;
-}
-
 bool rgb_layout_to_str(char* str, size_t sz, rgb_layout_t l)
 {
   if (sz < 3) return false;
@@ -63,4 +52,16 @@ bool str_to_rgb_layout(const char* str, size_t sz, rgb_layout_t& l)
   }
 
   return false;
+}
+
+
+void ChannelSwitcher::setLayout(rgb_layout_t l) noexcept
+{
+  _layout = l;
+  auto lv = static_cast<uint8_t>(l);
+  _ri = lv / 100;
+  lv -= _ri * 100;
+  _gi = lv / 10;
+  lv -= _gi * 10;
+  _bi = lv;
 }

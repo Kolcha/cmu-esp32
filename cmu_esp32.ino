@@ -47,9 +47,7 @@ extern "C" {
 #define FILTER_SERVICE_UUID     "fc8bd000-4814-4031-bff0-fbca1b99ee44"
 #define RMTCFG_SERVICE_UUID     "a45cde56-5c15-4fae-82cb-a3e1aece4f8b"
 
-/* log tags */
 #define BT_AV_TAG           "BT_AV"
-/* Application layer causes delay value */
 #define APP_DELAY_VALUE                   50  // 5ms
 
 #define count_of(X)     (sizeof(X)/sizeof(X[0]))
@@ -240,10 +238,10 @@ static void rmt_rgb_init()
 
   rmt_tx_channel_config_t tx_chan_config = {
     .gpio_num = RMT_LED_STRIP_GPIO_NUM,
-    .clk_src = RMT_CLK_SRC_DEFAULT, // select source clock
+    .clk_src = RMT_CLK_SRC_DEFAULT,
     .resolution_hz = RMT_LED_STRIP_RESOLUTION_HZ,
     .mem_block_symbols = SOC_RMT_MEM_WORDS_PER_CHANNEL,
-    .trans_queue_depth = 2,  // set the number of transactions that can be pending in the background
+    .trans_queue_depth = 2,
   };
   ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &led_chan));
 
