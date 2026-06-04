@@ -119,6 +119,11 @@ Actual frequencies depend on sample rate and threshold settings.
 - Frequency: 75 kHz
 - Resolution: 10-bit (0-1023 levels)
 
+Parameters are adjustable via BLE. Device restart required. Refer to ESP32 documentation to find the values range.
+
+> [!WARNING]
+> Setting unsupported (impossible) values combination may lead to unbootable device. Reflash with full flash (actually only 'nvs' partition) erase is required to restore.
+
 ### RMT Specifications
 
 - Channels layout: GRB
@@ -130,6 +135,14 @@ Actual frequencies depend on sample rate and threshold settings.
 - Treset: 300 us
 
 Initially configured for WS2812b then adjusted to be compatible with WS2815, should be compatible with many other.
+
+All the parameters above are adjustable via BLE. Channels layout is applied on-the-fly, the rest requires device restart.
+
+> [!IMPORTANT]
+> Smart LEDs require noticeable time to update the color (as data transmission happens), so strips are pretty slow. For example, for common WS2812b (or similar) it takes ~10 ms to update typical 300 LEDs strip (~30us per LED). Device has only ~15 ms for waiting for this, so LEDs count is hardly limited. Theoretical "acceptable" limit is 500, but practially it is not recommended to exceed 450. Also maximum LEDs count may vary depending on required timings. Refer to the LED datasheet for details.
+
+> [!NOTE]
+> It is not required to change the LEDs count if using less LEDs than specified in the device configuration.
 
 ## License
 
