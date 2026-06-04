@@ -45,6 +45,7 @@ extern "C" {
 
 #define DEVICE_SERVICE_UUID     "8af2e1aa-6cfa-4cd8-a9f9-54243e04d9c7"
 #define FILTER_SERVICE_UUID     "fc8bd000-4814-4031-bff0-fbca1b99ee44"
+#define PWMCFG_SERVICE_UUID     "340a7e51-aaaa-4c8d-9963-396736adde9b"
 #define RMTCFG_SERVICE_UUID     "a45cde56-5c15-4fae-82cb-a3e1aece4f8b"
 
 #define BT_AV_TAG           "BT_AV"
@@ -61,6 +62,11 @@ struct device_opt d_options = {
   .gamma_value = 2.8,
 };
 String device_name = "ESP_Speaker_K";
+
+struct pwm_cfg pwm_options = {
+  .freq = RGB_PWM_FREQ,
+  .bits = RGB_PWM_BITS,
+};
 
 struct rmt_cfg rmt_options = {
   .leds_count = 300,
@@ -207,22 +213,22 @@ static void maybe_save_bt_peer_addr(const uint8_t* bt_addr)
 // ----------------------------------------------------------
 static void pwm_rgb_init()
 {
-  ledcAttachChannel(12, RGB_PWM_FREQ, RGB_PWM_BITS, 0);
-  ledcAttachChannel(13, RGB_PWM_FREQ, RGB_PWM_BITS, 1);
-  ledcAttachChannel(14, RGB_PWM_FREQ, RGB_PWM_BITS, 2);
+  ledcAttachChannel(12, pwm_options.freq, pwm_options.bits, 0);
+  ledcAttachChannel(13, pwm_options.freq, pwm_options.bits, 1);
+  ledcAttachChannel(14, pwm_options.freq, pwm_options.bits, 2);
 
-  ledcAttachChannel(25, RGB_PWM_FREQ, RGB_PWM_BITS, 0);
-  ledcAttachChannel(26, RGB_PWM_FREQ, RGB_PWM_BITS, 1);
-  ledcAttachChannel(27, RGB_PWM_FREQ, RGB_PWM_BITS, 2);
+  ledcAttachChannel(25, pwm_options.freq, pwm_options.bits, 0);
+  ledcAttachChannel(26, pwm_options.freq, pwm_options.bits, 1);
+  ledcAttachChannel(27, pwm_options.freq, pwm_options.bits, 2);
 
-  ledcAttachChannel( 4, RGB_PWM_FREQ, RGB_PWM_BITS, 0);
-  ledcAttachChannel(16, RGB_PWM_FREQ, RGB_PWM_BITS, 1);
-  ledcAttachChannel(17, RGB_PWM_FREQ, RGB_PWM_BITS, 2);
+  ledcAttachChannel( 4, pwm_options.freq, pwm_options.bits, 0);
+  ledcAttachChannel(16, pwm_options.freq, pwm_options.bits, 1);
+  ledcAttachChannel(17, pwm_options.freq, pwm_options.bits, 2);
 }
 
 static void pwm_rgb_set(float r, float g, float b)
 {
-  constexpr uint32_t max_value = (1 << RGB_PWM_BITS) - 1;
+  const uint32_t max_value = (1 << pwm_options.bits) - 1;
   ledcWriteChannel(0, static_cast<uint32_t>(std::lround(r*max_value)));
   ledcWriteChannel(1, static_cast<uint32_t>(std::lround(g*max_value)));
   ledcWriteChannel(2, static_cast<uint32_t>(std::lround(b*max_value)));
@@ -562,6 +568,10 @@ static void ble_server_init(const char* dev_name)
   ble_add_filter_characteristics(f_service);
   f_service->start();
 
+  auto pwm_service = pServer->createService(BLEUUID(PWMCFG_SERVICE_UUID), 16);
+  ble_add_pwmcfg_characteristics(pwm_service);
+  pwm_service->start();
+
   auto rmt_service = pServer->createService(BLEUUID(RMTCFG_SERVICE_UUID), 64);
   ble_add_rmtcfg_characteristics(rmt_service);
   rmt_service->start();
@@ -569,6 +579,7 @@ static void ble_server_init(const char* dev_name)
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(DEVICE_SERVICE_UUID);
   pAdvertising->addServiceUUID(FILTER_SERVICE_UUID);
+  pAdvertising->addServiceUUID(PWMCFG_SERVICE_UUID);
   pAdvertising->addServiceUUID(RMTCFG_SERVICE_UUID);
   pAdvertising->setScanResponse(true);
   pAdvertising->setMinPreferred(0x06);
@@ -585,13 +596,13 @@ void setup()
   // use double buffering: 2 buffers x 2 16bit channels
   raw_audio_buffer = xRingbufferCreate(2*2*SAMPLES_COUNT*sizeof(int16_t), RINGBUF_TYPE_BYTEBUF);
 
+  load_values_from_config();
+
   pwm_rgb_init();
   rmt_rgb_init();
 
   pinMode(INDICATOR_LED_PIN, OUTPUT);
   digitalWrite(INDICATOR_LED_PIN, HIGH);
-
-  load_values_from_config();
 
   bt_audio_sink_init(device_name.c_str());
   ble_server_init(device_name.c_str());

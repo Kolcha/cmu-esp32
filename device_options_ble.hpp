@@ -13,6 +13,7 @@ void load_values_from_config();
 
 void ble_add_device_characteristics(BLEService* service);
 void ble_add_filter_characteristics(BLEService* service);
+void ble_add_pwmcfg_characteristics(BLEService* service);
 void ble_add_rmtcfg_characteristics(BLEService* service);
 
 

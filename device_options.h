@@ -13,6 +13,11 @@ struct device_opt {
   float gamma_value;
 };
 
+struct pwm_cfg {
+  uint32_t freq:24;
+  uint32_t bits:4;
+};
+
 struct rmt_cfg {
   uint16_t leds_count;
   uint16_t Treset;

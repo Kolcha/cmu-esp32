@@ -20,6 +20,7 @@ extern String device_name;
 extern struct device_opt d_options;
 extern struct filter_opt f_options;
 
+extern struct pwm_cfg pwm_options;
 extern ChannelSwitcher rmt_rgb_ch_swither;
 extern struct rmt_cfg rmt_options;
 
@@ -127,6 +128,18 @@ template<>
 uint16_t default_config_decode<uint16_t>(Preferences& prefs, const char* key, const uint16_t& def)
 {
   return prefs.getUShort(key, def);
+}
+
+template<>
+void default_config_encode<uint32_t>(Preferences& prefs, const char* key, const uint32_t& val)
+{
+  prefs.putULong(key, val);
+}
+
+template<>
+uint32_t default_config_decode<uint32_t>(Preferences& prefs, const char* key, const uint32_t& def)
+{
+  return prefs.getULong(key, def);
 }
 
 template<>
@@ -251,6 +264,23 @@ void fmt_rgb_layout_from_ble(BLECharacteristic* c, uint8_t& val)
   val = static_cast<uint8_t>(l);
 }
 
+template<typename T, size_t N>
+void fmt_n_bits_to_ble(const T& val, BLECharacteristic* c)
+{
+  static_assert(N <= sizeof(T) * 8);
+  const T mask = (1 << N) - 1;
+  const T bits = val & mask;
+  c->setValue(reinterpret_cast<const uint8_t*>(&bits), (N + 7) / 8);
+}
+
+template<typename T, size_t N>
+void fmt_n_bits_from_ble(BLECharacteristic* c, T& val)
+{
+  static_assert(N <= sizeof(T) * 8);
+  memcpy(&val, c->getData(), c->getLength());
+  val &= (1 << N) - 1;
+}
+
 
 constexpr ConfigEncoder<float> enc_float_u8 = {
   .write = &config_encode_float_u8,
@@ -284,6 +314,20 @@ static const ValueFormat<uint8_t> fmt_rgb_layout = {
   .from_ble = &fmt_rgb_layout_from_ble,
 };
 
+static const ValueFormat<uint32_t> fmt_u32_u4 = {
+  .format = BLE2904::FORMAT_UINT4,
+  .exponent = 0,
+  .to_ble = &fmt_n_bits_to_ble<uint32_t, 4>,
+  .from_ble = &fmt_n_bits_from_ble<uint32_t, 4>,
+};
+
+static const ValueFormat<uint32_t> fmt_u32_u24 = {
+  .format = BLE2904::FORMAT_UINT24,
+  .exponent = 0,
+  .to_ble = &fmt_n_bits_to_ble<uint32_t, 24>,
+  .from_ble = &fmt_n_bits_from_ble<uint32_t, 24>,
+};
+
 
 void ble_characteristic_add_format(BLECharacteristic* c, uint8_t fmt, int8_t exp)
 {
@@ -300,6 +344,34 @@ void ble_characteristic_add_description(BLECharacteristic* c, const char* desc)
   c->addDescriptor(ble_desc);
 }
 
+
+class PWMFrequencyValue final : public Value<uint32_t>
+{
+public:
+  explicit PWMFrequencyValue(pwm_cfg& cfg) noexcept
+    : _cfg(cfg)
+  {}
+
+  uint32_t get() const override { return _cfg.freq; }
+  void set(uint32_t v) override { _cfg.freq = v; }
+
+private:
+  pwm_cfg& _cfg;
+};
+
+class PWMResolutionValue final : public Value<uint32_t>
+{
+public:
+  explicit PWMResolutionValue(pwm_cfg& cfg) noexcept
+    : _cfg(cfg)
+  {}
+
+  uint32_t get() const override { return _cfg.bits; }
+  void set(uint32_t v) override { _cfg.bits = v; }
+
+private:
+  pwm_cfg& _cfg;
+};
 
 class ChannelsLayoutValue final : public Value<uint8_t>
 {
@@ -330,6 +402,9 @@ static auto val_thr_ml = SimpleValue(f_options.thr_ml);
 static auto val_thr_mh = SimpleValue(f_options.thr_mh);
 static auto val_thr_high = SimpleValue(f_options.thr_high);
 
+static auto val_pwm_freq = PWMFrequencyValue(pwm_options);
+static auto val_pwm_bits = PWMResolutionValue(pwm_options);
+
 static auto val_rmt_ch_layout = ChannelsLayoutValue(rmt_rgb_ch_swither);
 static auto val_rmt_leds_count = SimpleValue(rmt_options.leds_count);
 static auto val_rmt_treset = SimpleValue(rmt_options.Treset);
@@ -351,6 +426,9 @@ static auto opt_thr_low = ConfigValue(val_thr_low, "filter", "thr_low");
 static auto opt_thr_ml = ConfigValue(val_thr_ml, "filter", "thr_ml");
 static auto opt_thr_mh = ConfigValue(val_thr_mh, "filter", "thr_mh");
 static auto opt_thr_high = ConfigValue(val_thr_high, "filter", "thr_high");
+
+static auto opt_pwm_freq = ConfigValue(val_pwm_freq, "pwm", "freq");
+static auto opt_pwm_bits = ConfigValue(val_pwm_bits, "pwm", "bits");
 
 static auto opt_rmt_ch_layout = ConfigValue(val_rmt_ch_layout, "rmt", "ch_layout");
 static auto opt_rmt_leds_count = ConfigValue(val_rmt_leds_count, "rmt", "leds_count");
@@ -376,7 +454,16 @@ void load_values_from_config()
   opt_thr_mh.load();
   opt_thr_high.load();
 
+  opt_pwm_freq.load();
+  opt_pwm_bits.load();
+
   opt_rmt_ch_layout.load();
+  opt_rmt_leds_count.load();
+  opt_rmt_treset.load();
+  opt_rmt_t0h.load();
+  opt_rmt_t0l.load();
+  opt_rmt_t1h.load();
+  opt_rmt_t1l.load();
 }
 
 void ble_add_device_characteristics(BLEService* service)
@@ -439,6 +526,18 @@ void ble_add_filter_characteristics(BLEService* service)
                    "84dbac92-e7b4-4f70-97bb-a9ffdaa9393e",
                    fmt_u8_raw,
                    "High frequency filter threshold");
+}
+
+void ble_add_pwmcfg_characteristics(BLEService* service)
+{
+  ble_add_rw_value(service, opt_pwm_freq,
+                   "e533fc01-f374-4b71-b33e-cc7b4898613b",
+                   fmt_u32_u24,
+                   "(*) PWM frequency");
+  ble_add_rw_value(service, opt_pwm_bits,
+                   "c157f701-7329-49ae-a3e7-091dd2f57a7d",
+                   fmt_u32_u4,
+                   "(*) PWM resolution");
 }
 
 void ble_add_rmtcfg_characteristics(BLEService* service)
